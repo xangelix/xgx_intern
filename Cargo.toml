@@ -1,6 +1,6 @@
 [package]
 name = "xgx_intern"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 description = "A simple Hash trait interner for rust."
 license = "GPL-3.0-only"
