@@ -1,8 +1,10 @@
 pub mod float;
 
-use std::{borrow::Cow, hash::Hash};
+use std::{
+    borrow::Cow,
+    hash::{BuildHasher, Hash},
+};
 
-use ahash::RandomState;
 use indexmap::IndexSet;
 
 #[derive(Debug, thiserror::Error)]
@@ -16,29 +18,23 @@ pub enum InternerError {
 /// It stores each unique item only once and returns a lightweight `u32`
 /// handle for it. This is memory-efficient and allows for very fast
 /// equality comparisons on the handles.
-pub struct Interner<T: Eq + Hash + Clone> {
-    items: IndexSet<T, RandomState>,
+pub struct Interner<T: Eq + Hash + Clone, S: BuildHasher> {
+    items: IndexSet<T, S>,
 }
 
-impl<T: Eq + Hash + Clone> Default for Interner<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T: Eq + Hash + Clone> Interner<T> {
+impl<T: Eq + Hash + Clone, S: BuildHasher> Interner<T, S> {
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new(hasher: S) -> Self {
         Self {
-            items: IndexSet::with_hasher(RandomState::new()),
+            items: IndexSet::with_hasher(hasher),
         }
     }
 
     /// Creates a new interner with a specified capacity.
     #[must_use]
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(hasher: S, capacity: usize) -> Self {
         Self {
-            items: IndexSet::with_capacity_and_hasher(capacity, RandomState::new()),
+            items: IndexSet::with_capacity_and_hasher(capacity, hasher),
         }
     }
 
