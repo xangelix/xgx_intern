@@ -5,6 +5,7 @@ edition = "2024"
 description = "A simple Hash trait interner for rust."
 license = "GPL-3.0-only"
 documentation = "https://docs.rs/xgx_intern"
+repository = "https://github.com/xangelix/xgx_intern"
 
 [dependencies]
 indexmap = "2"
