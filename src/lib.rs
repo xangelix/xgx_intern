@@ -35,6 +35,14 @@ impl<T: Eq + Hash + Clone> Interner<T> {
         }
     }
 
+    /// Creates a new interner with a specified capacity.
+    #[must_use]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            items: IndexSet::with_capacity_and_hasher(capacity, RandomState::new()),
+        }
+    }
+
     /// Interns an item, accepting either a borrowed reference or an owned value.
     ///
     /// Returns a memory-efficient `u32` handle.
