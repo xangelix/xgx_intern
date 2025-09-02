@@ -70,17 +70,20 @@ impl<T: Eq + Hash + Clone> Interner<T> {
     ///
     /// Panics if the handle is invalid.
     #[must_use]
+    #[inline]
     pub fn resolve(&self, handle: u32) -> Option<&T> {
         self.items.get_index(handle as usize)
     }
 
     /// Returns the number of unique items in the interner.
     #[must_use]
+    #[inline]
     pub fn len(&self) -> usize {
         self.items.len()
     }
 
     #[must_use]
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
