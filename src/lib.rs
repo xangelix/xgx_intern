@@ -1,7 +1,6 @@
-use std::{
-    borrow::Cow,
-    hash::{Hash, Hasher},
-};
+pub mod float;
+
+use std::{borrow::Cow, hash::Hash};
 
 use ahash::RandomState;
 use indexmap::IndexSet;
@@ -91,39 +90,5 @@ impl<T: Eq + Hash + Clone> Interner<T> {
     #[must_use]
     pub fn export(self) -> Vec<T> {
         self.items.into_iter().collect()
-    }
-}
-
-// A wrapper around f64 that implements Eq and Hash based on bit patterns.
-#[derive(Clone, Copy, PartialOrd)]
-pub struct HashableF64(pub f64);
-
-impl PartialEq for HashableF64 {
-    fn eq(&self, other: &Self) -> bool {
-        // Two floats are equal if and only if their bit patterns are identical.
-        // This means 0.0 and -0.0 are treated as different, and NaN == NaN.
-        self.0.to_bits() == other.0.to_bits()
-    }
-}
-
-// Since we've defined a total equality relation, we can implement Eq.
-impl Eq for HashableF64 {}
-
-impl Hash for HashableF64 {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        // Hash the underlying bits of the float.
-        self.0.to_bits().hash(state);
-    }
-}
-
-impl From<HashableF64> for f64 {
-    fn from(value: HashableF64) -> Self {
-        value.0
-    }
-}
-
-impl From<f64> for HashableF64 {
-    fn from(value: f64) -> Self {
-        Self(value)
     }
 }
