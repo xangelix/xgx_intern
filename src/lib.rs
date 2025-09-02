@@ -115,3 +115,15 @@ impl Hash for HashableF64 {
         self.0.to_bits().hash(state);
     }
 }
+
+impl From<HashableF64> for f64 {
+    fn from(value: HashableF64) -> Self {
+        value.0
+    }
+}
+
+impl From<f64> for HashableF64 {
+    fn from(value: f64) -> Self {
+        Self(value)
+    }
+}
