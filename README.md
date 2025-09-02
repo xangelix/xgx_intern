@@ -1,4 +1,4 @@
-## xintern
+## xgx_intern
 
 A simple Hash trait interner for rust.
 
