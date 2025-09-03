@@ -11,3 +11,4 @@
 - Support borrowed types (e.g. &str)
 - Update README.md on latest features
 - Add CHANGELOG.md
+- Upgrade rustc-hash
