@@ -135,8 +135,17 @@ where
     ///
     /// Returns `InternerError::Overflow` if the interner's handle capacity is exhausted.
     pub fn intern_owned(&mut self, item: T) -> Result<H, InternerError> {
-        let (idx, _inserted) = self.items.insert_full(item);
-        Self::idx_to_handle(idx)
+        // Look up the item first. The `Borrow<T>` trait bound on `get_index_of`
+        // allows us to look up an owned `T` using a reference.
+        if let Some(idx) = self.items.get_index_of(&item) {
+            return Self::idx_to_handle(idx);
+        }
+
+        // If the item is new, check for overflow *before* inserting to
+        // maintain a consistent state if the operation fails.
+        let handle = Self::idx_to_handle(self.items.len())?;
+        self.items.insert(item);
+        Ok(handle)
     }
 
     /// Interns a borrowed value by reference.
