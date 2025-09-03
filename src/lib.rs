@@ -7,7 +7,7 @@
 pub mod float;
 
 use std::{
-    borrow::Cow,
+    borrow::{Borrow, Cow},
     hash::{BuildHasher, Hash},
     marker::PhantomData,
 };
@@ -162,15 +162,16 @@ where
     ///
     /// Returns `InternerError::Overflow` if a new item is inserted and the
     /// interner's handle capacity is exhausted.
-    pub fn intern_ref(&mut self, item: &T) -> Result<H, InternerError>
+    pub fn intern_ref<Q>(&mut self, item: &Q) -> Result<H, InternerError>
     where
-        T: Clone,
+        T: Borrow<Q> + Clone,
+        Q: ToOwned<Owned = T> + Hash + Eq + ?Sized,
     {
         if let Some(idx) = self.items.get_index_of(item) {
             return Self::idx_to_handle(idx);
         }
         let h = Self::idx_to_handle(self.items.len())?;
-        self.items.insert(item.clone());
+        self.items.insert(item.to_owned());
         Ok(h)
     }
 
@@ -190,19 +191,16 @@ where
     ///
     /// Returns `InternerError::Overflow` if a new item is inserted and the
     /// interner's handle capacity is exhausted.
-    pub fn intern_cow(&mut self, item: Cow<'_, T>) -> Result<H, InternerError>
+    pub fn intern_cow<Q>(&mut self, item: Cow<'_, Q>) -> Result<H, InternerError>
     where
-        T: Clone,
+        T: Borrow<Q> + Clone,
+        Q: ToOwned<Owned = T> + Hash + Eq + ?Sized,
     {
         if let Some(idx) = self.items.get_index_of(item.as_ref()) {
             return Self::idx_to_handle(idx);
         }
         let h = Self::idx_to_handle(self.items.len())?;
-        let owned = match item {
-            Cow::Owned(o) => o,
-            Cow::Borrowed(b) => b.clone(),
-        };
-        self.items.insert(owned);
+        self.items.insert(item.into_owned());
         Ok(h)
     }
 
@@ -324,8 +322,11 @@ mod tests {
         let mut interner = create_string_interner();
         let item = "cow".to_string();
 
-        // Intern using Cow::Owned
-        let handle1 = interner.intern_cow(Cow::Owned(item.clone())).unwrap();
+        // Intern using Cow::Owned. We must specify the type for the Cow's generic
+        // parameter to resolve the ambiguity between `String` and `str`.
+        let handle1 = interner
+            .intern_cow(Cow::<String>::Owned(item.clone()))
+            .unwrap();
         assert_eq!(interner.len(), 1);
         assert_eq!(interner.resolve(handle1), Some(&item));
 
