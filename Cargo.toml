@@ -10,3 +10,6 @@ repository = "https://github.com/xangelix/xgx_intern"
 [dependencies]
 indexmap = "2"
 thiserror = "2"
+
+[dev-dependencies]
+rustc-hash = "1"

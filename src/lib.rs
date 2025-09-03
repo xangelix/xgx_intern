@@ -252,3 +252,213 @@ where
         self.items.into_iter().collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rustc_hash::FxHasher;
+    use std::collections::hash_map::RandomState;
+    use std::hash::BuildHasherDefault;
+
+    // A helper to create a standard interner for tests that use strings.
+    fn create_string_interner() -> Interner<String, RandomState> {
+        Interner::new(RandomState::new())
+    }
+
+    #[test]
+    fn test_new_and_empty() {
+        let interner = create_string_interner();
+        assert!(interner.is_empty());
+        assert_eq!(interner.len(), 0);
+    }
+
+    #[test]
+    fn test_intern_owned_and_resolve() {
+        let mut interner = create_string_interner();
+        let item = "hello".to_string();
+        let handle = interner.intern_owned(item.clone()).unwrap();
+
+        assert!(!interner.is_empty());
+        assert_eq!(interner.len(), 1);
+        assert_eq!(interner.resolve(handle), Some(&item));
+    }
+
+    #[test]
+    fn test_intern_owned_duplicate_returns_same_handle() {
+        let mut interner = create_string_interner();
+        let item1 = "hello".to_string();
+        let item2 = "hello".to_string();
+
+        let handle1 = interner.intern_owned(item1).unwrap();
+        let handle2 = interner.intern_owned(item2).unwrap();
+
+        assert_eq!(handle1, handle2);
+        assert_eq!(interner.len(), 1);
+    }
+
+    #[test]
+    fn test_intern_ref_and_resolve() {
+        let mut interner = create_string_interner();
+        let item = "world".to_string();
+
+        let handle = interner.intern_ref(&item).unwrap();
+        assert_eq!(interner.len(), 1);
+        assert_eq!(interner.resolve(handle), Some(&item));
+    }
+
+    #[test]
+    fn test_intern_ref_duplicate_returns_same_handle() {
+        let mut interner = create_string_interner();
+        let item = "world".to_string();
+
+        let handle_owned = interner.intern_owned(item.clone()).unwrap();
+        assert_eq!(interner.len(), 1);
+
+        let handle_ref = interner.intern_ref(&item).unwrap();
+        assert_eq!(handle_owned, handle_ref);
+        assert_eq!(interner.len(), 1);
+    }
+
+    #[test]
+    fn test_intern_cow_variants() {
+        let mut interner = create_string_interner();
+        let item = "cow".to_string();
+
+        // Intern using Cow::Owned
+        let handle1 = interner.intern_cow(Cow::Owned(item.clone())).unwrap();
+        assert_eq!(interner.len(), 1);
+        assert_eq!(interner.resolve(handle1), Some(&item));
+
+        // Intern using Cow::Borrowed, which should find the existing entry
+        let handle2 = interner.intern_cow(Cow::Borrowed(&item)).unwrap();
+        assert_eq!(handle1, handle2);
+        assert_eq!(interner.len(), 1);
+
+        // Intern a new item via Cow::Borrowed
+        let new_item = "new_cow".to_string();
+        let handle3 = interner.intern_cow(Cow::Borrowed(&new_item)).unwrap();
+        assert_ne!(handle1, handle3);
+        assert_eq!(interner.len(), 2);
+        assert_eq!(interner.resolve(handle3), Some(&new_item));
+    }
+
+    #[test]
+    fn test_mixed_interning_provides_consistent_handles() {
+        let mut interner = create_string_interner();
+        let val = "test".to_string();
+
+        let h_owned = interner.intern_owned(val.clone()).unwrap();
+        let h_ref = interner.intern_ref(&val).unwrap();
+        let h_cow = interner.intern_cow(Cow::Borrowed(&val)).unwrap();
+
+        assert_eq!(h_owned, h_ref);
+        assert_eq!(h_ref, h_cow);
+        assert_eq!(interner.len(), 1);
+    }
+
+    #[test]
+    fn test_resolve_invalid_handle_returns_none() {
+        let interner = create_string_interner();
+        // Create an out-of-bounds handle. u32 is the default.
+        let invalid_handle: u32 = 999;
+        assert_eq!(interner.resolve(invalid_handle), None);
+    }
+
+    #[derive(Debug, Clone, Hash, Eq, PartialEq)]
+    struct TestStruct {
+        id: u32,
+        name: String,
+    }
+
+    #[test]
+    fn test_with_custom_struct_type() {
+        let mut interner: Interner<TestStruct, RandomState> = Interner::new(RandomState::new());
+        let item1 = TestStruct {
+            id: 1,
+            name: "one".into(),
+        };
+        let item2 = TestStruct {
+            id: 1,
+            name: "one".into(),
+        };
+        let item3 = TestStruct {
+            id: 2,
+            name: "two".into(),
+        };
+
+        let h1 = interner.intern_ref(&item1).unwrap();
+        let h2 = interner.intern_ref(&item2).unwrap();
+        let h3 = interner.intern_ref(&item3).unwrap();
+
+        assert_eq!(h1, h2);
+        assert_ne!(h1, h3);
+        assert_eq!(interner.len(), 2);
+        assert_eq!(interner.resolve(h1), Some(&item1));
+    }
+
+    #[test]
+    fn test_custom_handle_type_u16() {
+        let mut interner: Interner<i32, RandomState, u16> = Interner::new(RandomState::new());
+        let h1 = interner.intern_owned(100).unwrap();
+        let h2 = interner.intern_owned(200).unwrap();
+        let h3 = interner.intern_owned(100).unwrap();
+
+        assert_eq!(h1, 0u16);
+        assert_eq!(h2, 1u16);
+        assert_eq!(h1, h3);
+        assert_eq!(interner.len(), 2);
+    }
+
+    #[test]
+    fn test_handle_overflow_error() {
+        // Use a small handle type (u8) to make overflow easy to test.
+        let mut interner: Interner<u16, RandomState, u8> = Interner::new(RandomState::new());
+
+        // Intern 256 unique values (0 to 255), which should succeed.
+        for i in 0..=255 {
+            let handle_res = interner.intern_owned(i as u16);
+            assert!(handle_res.is_ok());
+            assert_eq!(handle_res.unwrap(), i as u8);
+        }
+        assert_eq!(interner.len(), 256);
+
+        // The next unique insertion (the 257th) should fail.
+        let overflow_res = interner.intern_owned(256);
+        assert!(matches!(overflow_res, Err(InternerError::Overflow)));
+
+        // The length should not have changed after the failed insertion.
+        assert_eq!(interner.len(), 256);
+    }
+
+    #[test]
+    fn test_custom_hasher_fxhash() {
+        // Use FxHasher for potentially faster hashing of integers.
+        type FxBuildHasher = BuildHasherDefault<FxHasher>;
+        let mut interner: Interner<i64, FxBuildHasher> = Interner::new(FxBuildHasher::default());
+
+        let h1 = interner.intern_owned(12345).unwrap();
+        let h2 = interner.intern_owned(12345).unwrap();
+
+        assert_eq!(h1, h2);
+        assert_eq!(interner.len(), 1);
+    }
+
+    #[test]
+    fn test_export_preserves_insertion_order() {
+        let mut interner = create_string_interner();
+        let h1 = interner.intern_owned("first".to_string()).unwrap();
+        let h2 = interner.intern_owned("second".to_string()).unwrap();
+        let _ = interner.intern_owned("first".to_string()).unwrap(); // Duplicate, should not affect order.
+
+        let exported_data = interner.export();
+
+        let expected = vec!["first".to_string(), "second".to_string()];
+        assert_eq!(exported_data, expected);
+
+        // The index from the exported vec should correspond to the handle.
+        let idx1: usize = h1.try_into().ok().unwrap();
+        let idx2: usize = h2.try_into().ok().unwrap();
+        assert_eq!(exported_data[idx1], "first");
+        assert_eq!(exported_data[idx2], "second");
+    }
+}
