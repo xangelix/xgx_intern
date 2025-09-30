@@ -3,6 +3,7 @@ name = "xgx_intern"
 version = "0.3.0"
 edition = "2024"
 description = "A simple Hash trait interner for rust."
+authors = ["Cody Wyatt Neiman (xangelix) <neiman@cody.to>"]
 license = "MIT"
 documentation = "https://docs.rs/xgx_intern"
 repository = "https://github.com/xangelix/xgx_intern"
