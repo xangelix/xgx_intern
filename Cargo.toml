@@ -3,6 +3,14 @@ name = "xgx_intern"
 version = "0.3.0"
 edition = "2024"
 description = "A simple Hash trait interner for rust."
+keywords = ["interner", "interning", "internment", "deduplication", "hashing"]
+categories = [
+    "data-structures",
+    "algorithms",
+    "memory-management",
+    "development-tools",
+    "rust-patterns",
+]
 authors = ["Cody Wyatt Neiman (xangelix) <neiman@cody.to>"]
 license = "MIT"
 documentation = "https://docs.rs/xgx_intern"
