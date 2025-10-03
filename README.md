@@ -1,5 +1,9 @@
 ## xgx_intern
 
+[![Crates.io](https://img.shields.io/crates/v/xgx_intern)](https://crates.io/crates/xgx_intern)
+[![Docs.rs](https://docs.rs/xgx_intern/badge.svg)](https://docs.rs/xgx_intern)
+[![License](https://img.shields.io/crates/l/xgx_intern)](https://spdx.org/licenses/MIT)
+
 A simple Hash trait interner for rust.
 
 ### Supported Stored Types
