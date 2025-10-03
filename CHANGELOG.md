@@ -1,5 +1,9 @@
 ## Changelog
 
+### 0.3.3
+
+- Add a couple wasm32 handle size warnings to README.md
+
 ### 0.3.2
 
 - Enforce docs on all items

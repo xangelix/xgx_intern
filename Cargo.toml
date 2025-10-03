@@ -1,6 +1,6 @@
 [package]
 name = "xgx_intern"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 description = "A simple Hash trait interner for rust."
 keywords = ["interner", "interning", "internment", "deduplication", "hashing"]
