@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-// A wrapper around f64 that implements Eq and Hash based on bit patterns.
+/// A wrapper around f64 that implements Eq and Hash based on bit patterns.
 #[derive(Clone, Copy, PartialOrd)]
 pub struct HashableF64(pub f64);
 
@@ -34,7 +34,7 @@ impl From<f64> for HashableF64 {
     }
 }
 
-// A wrapper around f32 that implements Eq and Hash based on bit patterns.
+/// A wrapper around f32 that implements Eq and Hash based on bit patterns.
 #[derive(Clone, Copy, PartialOrd)]
 pub struct HashableF32(pub f32);
 

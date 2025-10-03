@@ -1,3 +1,7 @@
+#![doc = include_str!("../README.md")]
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
 /// Provides wrappers for interning floating-point types.
 ///
 /// Standard `f32` and `f64` types do not implement `Eq` or `Hash` due to `NaN` semantics,
