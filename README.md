@@ -26,6 +26,8 @@ This approach offers two main benefits:
   * **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
   * **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
 
+> **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
+
 ## Installation
 
 Add `xgx_intern` to your `Cargo.toml`:
@@ -146,6 +148,8 @@ You can see more rust hash benchmarks here: [Rust Hash Benchmarks](https://githu
 ### Choosing a Handle Size
 
 The default handle type `H` is `u32`, which allows for up to \~4.2 billion unique items. If you know you'll have fewer unique items, you can use a smaller handle type like `u16` to save memory.
+
+> **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
 
 ```rust
 use std::collections::hash_map::RandomState;
