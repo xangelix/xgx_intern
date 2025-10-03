@@ -1,5 +1,17 @@
 ## Changelog
 
+### 0.3.2
+
+- Enforce docs on all items
+- Add docs to all items
+- Add basic shields/badges to top of README.md
+- Fill out README.md with examples and more details
+
+### 0.3.1
+
+- Add author Cargo.toml metadata
+- Add keyword and category Cargo.toml metadata
+
 ### 0.3.0
 
 - Support any index type that can be converted into a usize on the platform
