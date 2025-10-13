@@ -6,9 +6,11 @@
 
 A generic, high-performance, and customizable value interner for Rust.
 
+Supports custom handles! Perfect for native64<-->wasm32 compatibility.
+
 ## Overview
 
-Value interning is a powerful technique for deduplicating equal values to save memory and improve performance. An interner stores each unique value only once and provides a lightweight, copyable "handle" (or "symbol") to reference it.
+Value interning is a technique for deduplicating equal values to save memory and improve performance. An interner stores each unique value only once and provides a lightweight, copyable "handle" (or "symbol") to reference it.
 
 This approach offers two main benefits:
 
@@ -19,12 +21,13 @@ This approach offers two main benefits:
 
 ## Features
 
-  * **Fully Generic**: Works with any type that implements `Eq + Hash`.
-  * **Customizable Hasher**: Pluggable hashing algorithm via the `BuildHasher` trait. Use `ahash` or `fxhash` for a significant speed boost in performance-critical code.
-  * **Customizable Handle**: Choose the integer size for your handles (`u16`, `u32`, `u64`, etc.) to perfectly balance memory usage with the expected number of unique items.
-  * **Ergonomic API**: Offers `intern_owned`, `intern_ref`, and `intern_cow` to handle different ownership scenarios efficiently and avoid unnecessary clones.
-  * **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
-  * **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
+- **Fully Generic**: Works with any type that implements `Eq + Hash`.
+- **Customizable Hasher**: Pluggable hashing algorithm via the `BuildHasher` trait. Use `ahash` or `fxhash` for a significant speed boost in performance-critical code.
+- **Customizable Handle**: Choose the integer size for your handles (`u16`, `u32`, `u64`, etc.) to perfectly balance memory usage with the expected number of unique items.
+- **Ergonomic API**: Offers `intern_owned`, `intern_ref`, and `intern_cow` to handle different ownership scenarios efficiently and avoid unnecessary clones.
+- **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
+- **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
+- **Export**: Done interning values? Export the whole thing to a `Vec<T>` for further simplicity and memory efficiency.
 
 > **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
 
@@ -34,15 +37,17 @@ Add `xgx_intern` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xgx_intern = "0.3.2" # make sure to use latest version
+xgx_intern = "0.3" # make sure to use latest version
 ```
 
-For improved performance, you can use a faster hasher like `rustc-hash`:
+For improved performance, you can use a faster hasher like `ahash`:
 
 ```toml
 [dependencies]
-xgx_intern = "0.3.2" # make sure to use latest version
+ahash = "0.8" # make sure to use latest version
 ```
+
+but make sure you understand the security and safety tradeoffs in your use case.
 
 ## Usage
 
@@ -149,8 +154,6 @@ You can see more rust hash benchmarks here: [Rust Hash Benchmarks](https://githu
 
 The default handle type `H` is `u32`, which allows for up to \~4.2 billion unique items. If you know you'll have fewer unique items, you can use a smaller handle type like `u16` to save memory.
 
-> **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
-
 ```rust
 use std::collections::hash_map::RandomState;
 use xgx_intern::Interner;
@@ -166,6 +169,8 @@ assert_eq!(handle, 0);
 ```
 
 Conversely, if you need more than `u32::MAX` items, you can use `u64`.
+
+> **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
 
 ## License
 
