@@ -1,5 +1,9 @@
 ## Changelog
 
+### 0.3.4
+
+- Many small fixes and cleanups to README.md
+
 ### 0.3.3
 
 - Add a couple wasm32 handle size warnings to README.md
