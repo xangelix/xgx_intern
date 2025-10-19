@@ -1,5 +1,21 @@
 ## Changelog
 
+### 0.3.6
+
+- Update changelog for v0.3.5 and v0.3.6
+
+### 0.3.5
+
+- Add `lookup_handle` to fetch a handle without inserting.
+- Add iteration ergonomics: `iter()` and `IntoIterator` for `&Interner` and by-value.
+- Add utilities: `contains`, `capacity`, `reserve`, `shrink_to_fit`, `clear`.
+- Implement `Default` when `BuildHasher: Default`.
+- Re-export `HashableF32`/`HashableF64` at the crate root.
+- Float wrappers: implement `Debug` and `Display`.
+- `export()`: add `into_vec` doc alias.
+- Tests: add `ahash` doc test and more tests for new APIs.
+- Docs: clarify uniqueness wording and improve the tagline.
+
 ### 0.3.4
 
 - Many small fixes and cleanups to README.md
