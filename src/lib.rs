@@ -287,6 +287,15 @@ where
         self.items.is_empty()
     }
 
+    /// Iterates over all unique items in insertion order.
+    ///
+    /// Note: `&Interner` also implements `IntoIterator`, so you can write:
+    /// `for item in &interner { /* item: &T */ }`
+    #[inline]
+    pub fn iter(&self) -> indexmap::set::Iter<'_, T> {
+        self.items.iter()
+    }
+
     /// Consumes the interner and returns a vector of all unique items.
     ///
     /// The items in the returned vector are ordered by their first insertion.
@@ -298,6 +307,38 @@ where
     #[must_use]
     pub fn export(self) -> Vec<T> {
         self.items.into_iter().collect()
+    }
+}
+
+impl<'a, T, S, H> IntoIterator for &'a Interner<T, S, H>
+where
+    T: Eq + Hash,
+    S: BuildHasher,
+    H: Copy + TryFrom<usize>,
+    usize: TryFrom<H>,
+{
+    type Item = &'a T;
+    type IntoIter = indexmap::set::Iter<'a, T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.iter()
+    }
+}
+
+impl<T, S, H> IntoIterator for Interner<T, S, H>
+where
+    T: Eq + Hash,
+    S: BuildHasher,
+    H: Copy + TryFrom<usize>,
+    usize: TryFrom<H>,
+{
+    type Item = T;
+    type IntoIter = indexmap::set::IntoIter<T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.into_iter()
     }
 }
 
@@ -511,5 +552,19 @@ mod tests {
         let idx2: usize = h2.try_into().ok().unwrap();
         assert_eq!(exported_data[idx1], "first");
         assert_eq!(exported_data[idx2], "second");
+    }
+
+    #[test]
+    fn test_into_iterator_ref() {
+        let mut interner = create_string_interner();
+        interner.intern_ref("a").unwrap();
+        interner.intern_ref("b").unwrap();
+
+        let mut collected = Vec::new();
+        for s in &interner {
+            collected.push(s.as_str());
+        }
+
+        assert_eq!(collected, vec!["a", "b"]);
     }
 }
