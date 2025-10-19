@@ -18,6 +18,8 @@ use std::{
 
 use indexmap::IndexSet;
 
+pub use crate::float::{HashableF32, HashableF64};
+
 /// Represents errors that can occur during an interning operation.
 #[derive(Debug, thiserror::Error)]
 pub enum InternerError {
