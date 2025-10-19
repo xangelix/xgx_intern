@@ -93,6 +93,19 @@ where
     _handle: PhantomData<H>,
 }
 
+impl<T, S, H> Default for Interner<T, S, H>
+where
+    T: Eq + Hash,
+    S: BuildHasher + Default,
+    H: Copy + TryFrom<usize>,
+    usize: TryFrom<H>,
+{
+    #[inline]
+    fn default() -> Self {
+        Self::new(S::default())
+    }
+}
+
 impl<T, S, H> Interner<T, S, H>
 where
     T: Eq + Hash,
