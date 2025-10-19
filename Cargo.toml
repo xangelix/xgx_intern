@@ -22,3 +22,4 @@ thiserror = "2"
 
 [dev-dependencies]
 rustc-hash = "2"
+ahash = "0.8"
