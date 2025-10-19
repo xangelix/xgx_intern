@@ -319,6 +319,7 @@ where
     ///
     /// This can be useful for serialization or transferring the set of interned
     /// values to another context.
+    #[doc(alias = "into_vec")]
     #[must_use]
     pub fn export(self) -> Vec<T> {
         self.items.into_iter().collect()
