@@ -583,4 +583,47 @@ mod tests {
 
         assert_eq!(collected, vec!["a", "b"]);
     }
+
+    #[test]
+    fn test_get_does_not_insert() {
+        let mut interner = create_string_interner();
+        assert!(interner.lookup_handle("x").is_ok_and(|h| h.is_none()));
+        assert!(interner.is_empty());
+
+        let h = interner.intern_ref("x").unwrap();
+        assert_eq!(interner.lookup_handle("x").unwrap(), Some(h));
+        assert_eq!(interner.len(), 1);
+    }
+
+    #[test]
+    fn test_contains() {
+        let mut interner = create_string_interner();
+        interner.intern_ref("abc").unwrap();
+        assert!(interner.contains("abc"));
+        assert!(!interner.contains("def"));
+    }
+
+    #[test]
+    fn hashable_f64_nan_equality_and_hash() {
+        use std::{collections::hash_map::DefaultHasher, hash::Hasher as _};
+
+        use crate::HashableF64;
+        let a = HashableF64(f64::NAN);
+        let b = HashableF64(f64::from_bits(f64::NAN.to_bits()));
+        assert_eq!(a, b);
+
+        let mut ha = DefaultHasher::new();
+        let mut hb = DefaultHasher::new();
+        a.hash(&mut ha);
+        b.hash(&mut hb);
+        assert_eq!(ha.finish(), hb.finish());
+    }
+
+    #[test]
+    fn hashable_f64_signed_zero_unequal() {
+        use crate::HashableF64;
+        let pz = HashableF64(0.0);
+        let nz = HashableF64(-0.0);
+        assert_ne!(pz, nz);
+    }
 }
