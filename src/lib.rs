@@ -208,6 +208,18 @@ where
         Ok(h)
     }
 
+    /// Returns the handle for `item` if present, without inserting or cloning.
+    #[inline]
+    pub fn lookup_handle<Q>(&self, item: &Q) -> Result<Option<H>, InternerError>
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.items
+            .get_index_of(item)
+            .map_or(Ok(None), |idx| Ok(Some(Self::idx_to_handle(idx)?)))
+    }
+
     /// Internal helper to safely convert a `usize` index to a handle `H`.
     ///
     /// This is the single point of failure for handle space exhaustion.
