@@ -4,9 +4,9 @@
 [![Docs.rs](https://docs.rs/xgx_intern/badge.svg)](https://docs.rs/xgx_intern)
 [![License](https://img.shields.io/crates/l/xgx_intern)](https://spdx.org/licenses/MIT)
 
-A generic, high-performance, and customizable value interner for Rust.
+A high-performance, Hash-based value interner with custom handle types.
 
-Supports custom handles! Perfect for native64<-->wasm32 compatibility.
+Supports any type that implements the Hash trait for internment, and allows custom handle sizes! Perfect for native64<-->wasm32 compatibility.
 
 ## Overview
 

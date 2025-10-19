@@ -2,7 +2,7 @@
 name = "xgx_intern"
 version = "0.3.4"
 edition = "2024"
-description = "A simple Hash trait interner for rust."
+description = "A high-performance, Hash-based value interner with custom handle types."
 keywords = ["interner", "interning", "internment", "deduplication", "hashing"]
 categories = [
     "data-structures",
