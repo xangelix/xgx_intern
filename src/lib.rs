@@ -220,6 +220,40 @@ where
             .map_or(Ok(None), |idx| Ok(Some(Self::idx_to_handle(idx)?)))
     }
 
+    /// Returns true if an equal item is present.
+    #[inline]
+    pub fn contains<Q>(&self, item: &Q) -> bool
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.items.contains(item)
+    }
+
+    /// Current capacity, in number of items.
+    #[inline]
+    pub fn capacity(&self) -> usize {
+        self.items.capacity()
+    }
+
+    /// Reserves capacity for at least `additional` more items.
+    #[inline]
+    pub fn reserve(&mut self, additional: usize) {
+        self.items.reserve(additional);
+    }
+
+    /// Shrinks capacity to fit the current length.
+    #[inline]
+    pub fn shrink_to_fit(&mut self) {
+        self.items.shrink_to_fit();
+    }
+
+    /// Removes all items.
+    #[inline]
+    pub fn clear(&mut self) {
+        self.items.clear();
+    }
+
     /// Internal helper to safely convert a `usize` index to a handle `H`.
     ///
     /// This is the single point of failure for handle space exhaustion.
