@@ -1,7 +1,10 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+};
 
 /// A wrapper around f64 that implements Eq and Hash based on bit patterns.
-#[derive(Clone, Copy, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialOrd)]
 pub struct HashableF64(pub f64);
 
 impl PartialEq for HashableF64 {
@@ -22,6 +25,12 @@ impl Hash for HashableF64 {
     }
 }
 
+impl fmt::Display for HashableF64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
 impl From<HashableF64> for f64 {
     fn from(value: HashableF64) -> Self {
         value.0
@@ -35,7 +44,7 @@ impl From<f64> for HashableF64 {
 }
 
 /// A wrapper around f32 that implements Eq and Hash based on bit patterns.
-#[derive(Clone, Copy, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialOrd)]
 pub struct HashableF32(pub f32);
 
 impl PartialEq for HashableF32 {
@@ -53,6 +62,12 @@ impl Hash for HashableF32 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Hash the underlying bits of the float.
         self.0.to_bits().hash(state);
+    }
+}
+
+impl fmt::Display for HashableF32 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
     }
 }
 
