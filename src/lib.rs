@@ -12,6 +12,7 @@ pub mod float;
 
 use std::{
     borrow::{Borrow, Cow},
+    fmt,
     hash::{BuildHasher, Hash},
     marker::PhantomData,
 };
@@ -105,6 +106,21 @@ where
     #[inline]
     fn default() -> Self {
         Self::new(S::default())
+    }
+}
+
+impl<T, S, H> fmt::Debug for Interner<T, S, H>
+where
+    T: Eq + Hash,
+    S: BuildHasher,
+    H: Copy + TryFrom<usize>,
+    usize: TryFrom<H>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Interner")
+            .field("len", &self.len())
+            .field("capacity", &self.capacity())
+            .finish()
     }
 }
 
