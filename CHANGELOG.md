@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.3.7
+
+- Implement `Debug` for `Interner`
+- Float helpers: `new`, `into_inner`, `as_inner`
+- Add `intern_ref_or_insert_with`
+
 ### 0.3.6
 
 - Update changelog for v0.3.5 and v0.3.6
