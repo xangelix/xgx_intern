@@ -239,6 +239,21 @@ where
         Ok(h)
     }
 
+    /// Returns the existing handle for `key` or inserts a newly constructed value.
+    pub fn intern_ref_or_insert_with<Q, F>(&mut self, key: &Q, make: F) -> Result<H, InternerError>
+    where
+        T: Borrow<Q> + Clone,
+        Q: Hash + Eq + ?Sized,
+        F: FnOnce() -> T,
+    {
+        if let Some(idx) = self.items.get_index_of(key) {
+            return Self::idx_to_handle(idx);
+        }
+        let h = Self::idx_to_handle(self.items.len())?;
+        self.items.insert(make());
+        Ok(h)
+    }
+
     /// Returns the handle for `item` if present, without inserting or cloning.
     #[inline]
     pub fn lookup_handle<Q>(&self, item: &Q) -> Result<Option<H>, InternerError>
