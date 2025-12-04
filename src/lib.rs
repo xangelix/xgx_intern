@@ -389,6 +389,53 @@ where
     }
 }
 
+impl<T, S, H> Interner<T, S, H>
+where
+    T: Eq + Hash + AsRef<str>,
+    S: BuildHasher,
+    H: Copy + TryFrom<usize>,
+    usize: TryFrom<H>,
+{
+    /// Consumes the interner and flattens all strings into a single contiguous arena.
+    ///
+    /// This returns a tuple containing:
+    /// 1. `String`: A massive string containing all interned values concatenated together.
+    /// 2. `Vec<usize>`: A list of offsets.
+    ///
+    /// # How to use
+    ///
+    /// The string associated with handle `h` is located at:
+    /// `&arena[offsets[h] .. offsets[h+1]]`
+    ///
+    /// # Efficiency
+    ///
+    /// This is much more memory efficient than `export()` for large numbers of small strings,
+    /// as it removes the overhead of `String` structs (24 bytes) and heap allocators (16+ bytes)
+    /// per item.
+    pub fn export_arena(self) -> (String, Vec<usize>) {
+        // 1. Calculate total bytes needed to perform exactly ONE allocation.
+        // We iterate once to count. This is cheap (RAM access).
+        let total_bytes: usize = self.items.iter().map(|s| s.as_ref().len()).sum();
+        let count = self.items.len();
+
+        // 2. Allocate the arena and the offsets table.
+        let mut arena = String::with_capacity(total_bytes);
+        let mut offsets = Vec::with_capacity(count + 1);
+
+        // 3. The first offset is always 0.
+        offsets.push(0);
+
+        // 4. Fill the arena.
+        // IndexSet iteration preserves insertion order, so handle IDs remain valid.
+        for item in self.items {
+            arena.push_str(item.as_ref());
+            offsets.push(arena.len());
+        }
+
+        (arena, offsets)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
