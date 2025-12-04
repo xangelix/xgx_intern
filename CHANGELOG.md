@@ -1,5 +1,9 @@
 ## Changelog
 
+### 0.3.8
+
+- Add arena export, `export_arena`, option
+
 ### 0.3.7
 
 - Implement `Debug` for `Interner`
