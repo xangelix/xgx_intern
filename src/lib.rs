@@ -2,8 +2,27 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-use std::collections::{BTreeSet, HashSet};
-use std::{rc::Rc, sync::Arc};
+/// Provides wrappers for interning floating-point types.
+///
+/// Standard `f32` and `f64` types do not implement `Eq` or `Hash` due to `NaN` semantics,
+/// making them unusable with `Interner` directly. This module offers custom
+/// types that provide a canonical representation for hashing and equality, allowing
+/// floats to be reliably interned.
+pub mod float;
+
+use std::{
+    borrow::{Borrow, Cow},
+    collections::{BTreeSet, HashSet},
+    fmt,
+    hash::{BuildHasher, Hash},
+    marker::PhantomData,
+    rc::Rc,
+    sync::Arc,
+};
+
+use indexmap::IndexSet;
+
+pub use crate::float::{HashableF32, HashableF64};
 
 /// An extension trait that can be defined for a parametric `Owned` type.
 ///
@@ -54,25 +73,6 @@ impl<T: Clone> XgxOwned<T> for T {
         self.clone()
     }
 }
-
-/// Provides wrappers for interning floating-point types.
-///
-/// Standard `f32` and `f64` types do not implement `Eq` or `Hash` due to `NaN` semantics,
-/// making them unusable with `Interner` directly. This module offers custom
-/// types that provide a canonical representation for hashing and equality, allowing
-/// floats to be reliably interned.
-pub mod float;
-
-use std::{
-    borrow::{Borrow, Cow},
-    fmt,
-    hash::{BuildHasher, Hash},
-    marker::PhantomData,
-};
-
-use indexmap::IndexSet;
-
-pub use crate::float::{HashableF32, HashableF64};
 
 /// Represents errors that can occur during an interning operation.
 #[derive(Debug, thiserror::Error)]
