@@ -2,6 +2,59 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+use std::collections::{BTreeSet, HashSet};
+use std::{rc::Rc, sync::Arc};
+
+/// An extension trait that can be defined for a parametric `Owned` type.
+///
+/// Similar to [`ToOwned`], but it can be implemented on the same base type multiple times with a
+/// different output `Owned` type.
+pub trait XgxOwned<Owned> {
+    /// Convert to the `Owned` type.
+    fn to_owned(&self) -> Owned;
+}
+
+impl XgxOwned<Box<str>> for str {
+    fn to_owned(&self) -> Box<str> {
+        Box::from(self)
+    }
+}
+impl XgxOwned<Rc<str>> for str {
+    fn to_owned(&self) -> Rc<str> {
+        Rc::from(self)
+    }
+}
+impl XgxOwned<Arc<str>> for str {
+    fn to_owned(&self) -> Arc<str> {
+        Arc::from(self)
+    }
+}
+impl XgxOwned<String> for str {
+    fn to_owned(&self) -> String {
+        self.to_string()
+    }
+}
+impl<T: Clone> XgxOwned<Vec<T>> for [T] {
+    fn to_owned(&self) -> Vec<T> {
+        self.to_vec()
+    }
+}
+impl<T: Clone + Ord> XgxOwned<BTreeSet<T>> for [T] {
+    fn to_owned(&self) -> BTreeSet<T> {
+        BTreeSet::from_iter(self.iter().cloned())
+    }
+}
+impl<T: Clone + Hash + Eq> XgxOwned<HashSet<T>> for [T] {
+    fn to_owned(&self) -> HashSet<T> {
+        HashSet::from_iter(self.iter().cloned())
+    }
+}
+impl<T: Clone> XgxOwned<T> for T {
+    fn to_owned(&self) -> T {
+        self.clone()
+    }
+}
+
 /// Provides wrappers for interning floating-point types.
 ///
 /// Standard `f32` and `f64` types do not implement `Eq` or `Hash` due to `NaN` semantics,
@@ -200,7 +253,7 @@ where
     pub fn intern_ref<Q>(&mut self, item: &Q) -> Result<H, InternerError>
     where
         T: Borrow<Q> + Clone,
-        Q: ToOwned<Owned = T> + Hash + Eq + ?Sized,
+        Q: XgxOwned<T> + Hash + Eq + ?Sized,
     {
         if let Some(idx) = self.items.get_index_of(item) {
             return Self::idx_to_handle(idx);
