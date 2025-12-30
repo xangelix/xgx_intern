@@ -543,6 +543,36 @@ mod tests {
     }
 
     #[test]
+    fn test_intern_ref_and_resolve_box_str() {
+        let mut interner = Interner::<Box<str>, RandomState>::new(RandomState::new());
+        let item = "world";
+
+        let handle = interner.intern_ref(item).unwrap();
+        assert_eq!(interner.len(), 1);
+        assert_eq!(interner.resolve(handle).map(|s| &**s), Some(item));
+    }
+
+    #[test]
+    fn test_intern_ref_and_resolve_rc_str() {
+        let mut interner = Interner::<Rc<str>, RandomState>::new(RandomState::new());
+        let item = "world";
+
+        let handle = interner.intern_ref(item).unwrap();
+        assert_eq!(interner.len(), 1);
+        assert_eq!(interner.resolve(handle).map(|s| &**s), Some(item));
+    }
+
+    #[test]
+    fn test_intern_ref_and_resolve_arc_str() {
+        let mut interner = Interner::<Arc<str>, RandomState>::new(RandomState::new());
+        let item = "world";
+
+        let handle = interner.intern_ref(item).unwrap();
+        assert_eq!(interner.len(), 1);
+        assert_eq!(interner.resolve(handle).map(|s| &**s), Some(item));
+    }
+
+    #[test]
     fn test_intern_ref_duplicate_returns_same_handle() {
         let mut interner = create_string_interner();
         let item = "world".to_string();
