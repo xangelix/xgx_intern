@@ -24,53 +24,53 @@ use indexmap::IndexSet;
 
 pub use crate::float::{HashableF32, HashableF64};
 
-/// An extension trait that can be defined for a parametric `Owned` type.
+/// Construct an owned type from a reference.
 ///
-/// Similar to [`ToOwned`], but it can be implemented on the same base type multiple times with a
-/// different output `Owned` type.
-pub trait XgxOwned<Owned> {
-    /// Convert to the `Owned` type.
-    fn to_owned(&self) -> Owned;
+/// Similar to [`ToOwned`] or [`Clone`], but it can be implemented on any
+/// combination of base type and `Borrowed` type.
+pub trait FromRef<Borrowed: ?Sized> {
+    /// Construct an owned type from a reference.
+    fn from_ref(val: &Borrowed) -> Self;
 }
 
-impl XgxOwned<Box<str>> for str {
-    fn to_owned(&self) -> Box<str> {
-        Box::from(self)
+impl FromRef<str> for Box<str> {
+    fn from_ref(val: &str) -> Self {
+        Box::from(val)
     }
 }
-impl XgxOwned<Rc<str>> for str {
-    fn to_owned(&self) -> Rc<str> {
-        Rc::from(self)
+impl FromRef<str> for Rc<str> {
+    fn from_ref(val: &str) -> Self {
+        Rc::from(val)
     }
 }
-impl XgxOwned<Arc<str>> for str {
-    fn to_owned(&self) -> Arc<str> {
-        Arc::from(self)
+impl FromRef<str> for Arc<str> {
+    fn from_ref(val: &str) -> Self {
+        Arc::from(val)
     }
 }
-impl XgxOwned<String> for str {
-    fn to_owned(&self) -> String {
-        self.to_string()
+impl FromRef<str> for String {
+    fn from_ref(val: &str) -> Self {
+        val.to_string()
     }
 }
-impl<T: Clone> XgxOwned<Vec<T>> for [T] {
-    fn to_owned(&self) -> Vec<T> {
-        self.to_vec()
+impl<T: Clone> FromRef<[T]> for Vec<T> {
+    fn from_ref(val: &[T]) -> Self {
+        val.to_vec()
     }
 }
-impl<T: Clone + Ord> XgxOwned<BTreeSet<T>> for [T] {
-    fn to_owned(&self) -> BTreeSet<T> {
-        BTreeSet::from_iter(self.iter().cloned())
+impl<T: Clone + Ord> FromRef<[T]> for BTreeSet<T> {
+    fn from_ref(val: &[T]) -> Self {
+        BTreeSet::from_iter(val.iter().cloned())
     }
 }
-impl<T: Clone + Hash + Eq> XgxOwned<HashSet<T>> for [T] {
-    fn to_owned(&self) -> HashSet<T> {
-        HashSet::from_iter(self.iter().cloned())
+impl<T: Clone + Hash + Eq> FromRef<[T]> for HashSet<T> {
+    fn from_ref(val: &[T]) -> Self {
+        HashSet::from_iter(val.iter().cloned())
     }
 }
-impl<T: Clone> XgxOwned<T> for T {
-    fn to_owned(&self) -> T {
-        self.clone()
+impl<T: Clone> FromRef<T> for T {
+    fn from_ref(val: &T) -> Self {
+        val.clone()
     }
 }
 
@@ -242,9 +242,9 @@ where
     /// returned without any allocation. If the value is not present, `item` is
     /// cloned, the clone is stored, and a new handle is returned.
     ///
-    /// This method requires `T: Clone` and is ideal for cases where you have a
-    /// reference to a value and want to avoid cloning it if it's already been
-    /// interned.
+    /// This method requires `T: FromRef` and is ideal for cases where you have
+    /// a reference to a value or slice and want to avoid cloning or boxing if
+    /// it's already been interned.
     ///
     /// # Errors
     ///
@@ -252,14 +252,14 @@ where
     /// interner's handle capacity is exhausted.
     pub fn intern_ref<Q>(&mut self, item: &Q) -> Result<H, InternerError>
     where
-        T: Borrow<Q> + Clone,
-        Q: XgxOwned<T> + Hash + Eq + ?Sized,
+        T: Borrow<Q> + FromRef<Q>,
+        Q: Hash + Eq + ?Sized,
     {
         if let Some(idx) = self.items.get_index_of(item) {
             return Self::idx_to_handle(idx);
         }
         let h = Self::idx_to_handle(self.items.len())?;
-        self.items.insert(item.to_owned());
+        self.items.insert(T::from_ref(item.borrow()));
         Ok(h)
     }
 
@@ -570,6 +570,19 @@ mod tests {
         let handle = interner.intern_ref(item).unwrap();
         assert_eq!(interner.len(), 1);
         assert_eq!(interner.resolve(handle).map(|s| &**s), Some(item));
+    }
+
+    #[test]
+    fn test_intern_ref_and_resolve_vec_u8() {
+        let mut interner = Interner::<Vec<u8>, RandomState>::new(RandomState::new());
+        let item = "world";
+
+        let handle = interner.intern_ref(item.as_bytes()).unwrap();
+        assert_eq!(interner.len(), 1);
+        assert_eq!(
+            interner.resolve(handle).map(|v| v.as_slice()),
+            Some(item.as_bytes()),
+        );
     }
 
     #[test]
