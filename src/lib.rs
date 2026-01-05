@@ -13,9 +13,11 @@ pub mod float;
 use std::{
     borrow::{Borrow, Cow},
     collections::{BTreeSet, HashSet},
+    ffi::{CStr, CString, OsStr, OsString},
     fmt,
     hash::{BuildHasher, Hash},
     marker::PhantomData,
+    path::{Path, PathBuf},
     rc::Rc,
     sync::Arc,
 };
@@ -51,6 +53,81 @@ impl FromRef<str> for Arc<str> {
 impl FromRef<str> for String {
     fn from_ref(val: &str) -> Self {
         val.to_string()
+    }
+}
+impl FromRef<CStr> for Box<CStr> {
+    fn from_ref(val: &CStr) -> Self {
+        Box::from(val)
+    }
+}
+impl FromRef<CStr> for Rc<CStr> {
+    fn from_ref(val: &CStr) -> Self {
+        Rc::from(val)
+    }
+}
+impl FromRef<CStr> for Arc<CStr> {
+    fn from_ref(val: &CStr) -> Self {
+        Arc::from(val)
+    }
+}
+impl FromRef<CStr> for CString {
+    fn from_ref(val: &CStr) -> Self {
+        val.to_owned()
+    }
+}
+impl FromRef<OsStr> for Box<OsStr> {
+    fn from_ref(val: &OsStr) -> Self {
+        Box::from(val)
+    }
+}
+impl FromRef<OsStr> for Rc<OsStr> {
+    fn from_ref(val: &OsStr) -> Self {
+        Rc::from(val)
+    }
+}
+impl FromRef<OsStr> for Arc<OsStr> {
+    fn from_ref(val: &OsStr) -> Self {
+        Arc::from(val)
+    }
+}
+impl FromRef<OsStr> for OsString {
+    fn from_ref(val: &OsStr) -> Self {
+        val.to_os_string()
+    }
+}
+impl FromRef<Path> for Box<Path> {
+    fn from_ref(val: &Path) -> Self {
+        Box::from(val)
+    }
+}
+impl FromRef<Path> for Rc<Path> {
+    fn from_ref(val: &Path) -> Self {
+        Rc::from(val)
+    }
+}
+impl FromRef<Path> for Arc<Path> {
+    fn from_ref(val: &Path) -> Self {
+        Arc::from(val)
+    }
+}
+impl FromRef<Path> for PathBuf {
+    fn from_ref(val: &Path) -> Self {
+        val.to_path_buf()
+    }
+}
+impl<T: Clone> FromRef<[T]> for Box<[T]> {
+    fn from_ref(val: &[T]) -> Self {
+        Box::from(val)
+    }
+}
+impl<T: Clone> FromRef<[T]> for Rc<[T]> {
+    fn from_ref(val: &[T]) -> Self {
+        Rc::from(val)
+    }
+}
+impl<T: Clone> FromRef<[T]> for Arc<[T]> {
+    fn from_ref(val: &[T]) -> Self {
+        Arc::from(val)
     }
 }
 impl<T: Clone> FromRef<[T]> for Vec<T> {
