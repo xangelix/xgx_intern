@@ -1,6 +1,7 @@
-use std::{
+use core::{
     fmt,
     hash::{Hash, Hasher},
+    ops::Deref,
 };
 
 /// A wrapper around f64 that implements Eq and Hash based on bit patterns.
@@ -64,7 +65,7 @@ impl HashableF64 {
     }
 }
 
-impl std::ops::Deref for HashableF64 {
+impl Deref for HashableF64 {
     type Target = f64;
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -132,7 +133,7 @@ impl HashableF32 {
     }
 }
 
-impl std::ops::Deref for HashableF32 {
+impl Deref for HashableF32 {
     type Target = f32;
     fn deref(&self) -> &Self::Target {
         &self.0
