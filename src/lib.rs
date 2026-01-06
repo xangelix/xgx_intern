@@ -557,10 +557,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::{
+        borrow::Cow,
+        collections::hash_map::RandomState,
+        hash::{BuildHasherDefault, DefaultHasher, Hash as _, Hasher as _},
+        rc::Rc,
+        sync::Arc,
+    };
+
     use rustc_hash::FxHasher;
-    use std::collections::hash_map::RandomState;
-    use std::hash::BuildHasherDefault;
+
+    use super::{HashableF64, Interner, InternerError};
 
     // A helper to create a standard interner for tests that use strings.
     fn create_string_interner() -> Interner<String, RandomState> {
@@ -845,9 +852,6 @@ mod tests {
 
     #[test]
     fn hashable_f64_nan_equality_and_hash() {
-        use std::{collections::hash_map::DefaultHasher, hash::Hasher as _};
-
-        use crate::HashableF64;
         let a = HashableF64(f64::NAN);
         let b = HashableF64(f64::from_bits(f64::NAN.to_bits()));
         assert_eq!(a, b);
@@ -861,7 +865,6 @@ mod tests {
 
     #[test]
     fn hashable_f64_signed_zero_unequal() {
-        use crate::HashableF64;
         let pz = HashableF64(0.0);
         let nz = HashableF64(-0.0);
         assert_ne!(pz, nz);
