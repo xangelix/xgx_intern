@@ -1,5 +1,45 @@
 ## Changelog
 
+### 0.4.0
+
+**Features:**
+
+- **Smart Pointer Support:** You can now intern `Arc<str>`, `Rc<str>`, and `Box<str>` directly from `&str` using `intern_ref`. This enables zero-allocation lookups for shared strings!
+- **OS/FFI Type Support:** Added support for interning `Path` / `PathBuf`, `OsStr` / `OsString`, and `CStr` / `CString`.
+- **`FromRef` Trait:** Added the `FromRef` trait, allowing users to define custom reference-to-owned conversions for their own types.
+
+**Breaking Changes:**
+
+- `intern_ref` now relies on a new trait, `FromRef`, instead of `std::borrow::ToOwned`. This allows for more flexible interning of types where the borrowed form and owned form differ in ways `ToOwned` cannot handle (e.g., `&str` -> `Arc<str>`).
+  - If you were interning standard types (`String`, `Vec`, `PathBuf`, etc.) or simple `Clone`-able structs, no changes are required.
+  - If you were interning custom types relying on a custom `ToOwned` implementation, you must now implement `FromRef` for your type.
+
+#### Migration Example
+
+If you previously had:
+
+```rust
+// Old way relying on ToOwned
+impl ToOwned for MyRef {
+    type Owned = MyType;
+
+    fn to_owned(&self) -> MyType { ... }
+}
+
+```
+
+Rewrite to:
+
+```rust
+// New way relying on FromRef
+impl FromRef<MyRef> for MyType {
+    fn from_ref(val: &MyRef) -> Self {
+        val.to_owned() // or custom logic
+    }
+}
+
+```
+
 ### 0.3.8
 
 - Add arena export, `export_arena`, option
