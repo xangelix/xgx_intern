@@ -12,7 +12,6 @@ pub mod float;
 
 use std::{
     borrow::{Borrow, Cow},
-    collections::{BTreeSet, HashSet},
     ffi::{CStr, CString, OsStr, OsString},
     fmt,
     hash::{BuildHasher, Hash},
@@ -133,16 +132,6 @@ impl<T: Clone> FromRef<[T]> for Arc<[T]> {
 impl<T: Clone> FromRef<[T]> for Vec<T> {
     fn from_ref(val: &[T]) -> Self {
         val.to_vec()
-    }
-}
-impl<T: Clone + Ord> FromRef<[T]> for BTreeSet<T> {
-    fn from_ref(val: &[T]) -> Self {
-        BTreeSet::from_iter(val.iter().cloned())
-    }
-}
-impl<T: Clone + Hash + Eq> FromRef<[T]> for HashSet<T> {
-    fn from_ref(val: &[T]) -> Self {
-        HashSet::from_iter(val.iter().cloned())
     }
 }
 impl<T: Clone> FromRef<T> for T {
@@ -336,7 +325,7 @@ where
             return Self::idx_to_handle(idx);
         }
         let h = Self::idx_to_handle(self.items.len())?;
-        self.items.insert(T::from_ref(item.borrow()));
+        self.items.insert(T::from_ref(item));
         Ok(h)
     }
 
