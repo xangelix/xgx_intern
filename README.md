@@ -25,6 +25,7 @@ This approach offers two main benefits:
 - **Customizable Hasher**: Pluggable hashing algorithm via the `BuildHasher` trait. Use `ahash` or `fxhash` for a significant speed boost in performance-critical code.
 - **Customizable Handle**: Choose the integer size for your handles (`u16`, `u32`, `u64`, etc.) to perfectly balance memory usage with the expected number of unique items.
 - **Ergonomic API**: Offers `intern_owned`, `intern_ref`, and `intern_cow` to handle different ownership scenarios efficiently and avoid unnecessary clones.
+- **Smart Pointer & System Types**: Efficiently interns `Arc<str>`, `Rc<str>`, `Box<str>`, `PathBuf`, `OsString`, and `CString` directly from borrowed references (`&str`, `&Path`, etc.), enabling zero-allocation lookups for shared strings and system types.
 - **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
 - **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
 - **Export**: Done interning values? Export the whole thing to a `Vec<T>` for further simplicity and memory efficiency.
