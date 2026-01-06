@@ -10,135 +10,20 @@
 /// floats to be reliably interned.
 pub mod float;
 
+/// Provides the `FromRef` trait for constructing owned types from references.
+pub mod from_ref;
+
+pub use float::{HashableF32, HashableF64};
+pub use from_ref::FromRef;
+
 use std::{
     borrow::{Borrow, Cow},
-    ffi::{CStr, CString, OsStr, OsString},
     fmt,
     hash::{BuildHasher, Hash},
     marker::PhantomData,
-    path::{Path, PathBuf},
-    rc::Rc,
-    sync::Arc,
 };
 
 use indexmap::IndexSet;
-
-pub use crate::float::{HashableF32, HashableF64};
-
-/// Construct an owned type from a reference.
-///
-/// Similar to [`ToOwned`] or [`Clone`], but it can be implemented on any
-/// combination of base type and `Borrowed` type.
-pub trait FromRef<Borrowed: ?Sized> {
-    /// Construct an owned type from a reference.
-    fn from_ref(val: &Borrowed) -> Self;
-}
-
-impl FromRef<str> for Box<str> {
-    fn from_ref(val: &str) -> Self {
-        Box::from(val)
-    }
-}
-impl FromRef<str> for Rc<str> {
-    fn from_ref(val: &str) -> Self {
-        Rc::from(val)
-    }
-}
-impl FromRef<str> for Arc<str> {
-    fn from_ref(val: &str) -> Self {
-        Arc::from(val)
-    }
-}
-impl FromRef<str> for String {
-    fn from_ref(val: &str) -> Self {
-        val.to_string()
-    }
-}
-impl FromRef<CStr> for Box<CStr> {
-    fn from_ref(val: &CStr) -> Self {
-        Box::from(val)
-    }
-}
-impl FromRef<CStr> for Rc<CStr> {
-    fn from_ref(val: &CStr) -> Self {
-        Rc::from(val)
-    }
-}
-impl FromRef<CStr> for Arc<CStr> {
-    fn from_ref(val: &CStr) -> Self {
-        Arc::from(val)
-    }
-}
-impl FromRef<CStr> for CString {
-    fn from_ref(val: &CStr) -> Self {
-        val.to_owned()
-    }
-}
-impl FromRef<OsStr> for Box<OsStr> {
-    fn from_ref(val: &OsStr) -> Self {
-        Box::from(val)
-    }
-}
-impl FromRef<OsStr> for Rc<OsStr> {
-    fn from_ref(val: &OsStr) -> Self {
-        Rc::from(val)
-    }
-}
-impl FromRef<OsStr> for Arc<OsStr> {
-    fn from_ref(val: &OsStr) -> Self {
-        Arc::from(val)
-    }
-}
-impl FromRef<OsStr> for OsString {
-    fn from_ref(val: &OsStr) -> Self {
-        val.to_os_string()
-    }
-}
-impl FromRef<Path> for Box<Path> {
-    fn from_ref(val: &Path) -> Self {
-        Box::from(val)
-    }
-}
-impl FromRef<Path> for Rc<Path> {
-    fn from_ref(val: &Path) -> Self {
-        Rc::from(val)
-    }
-}
-impl FromRef<Path> for Arc<Path> {
-    fn from_ref(val: &Path) -> Self {
-        Arc::from(val)
-    }
-}
-impl FromRef<Path> for PathBuf {
-    fn from_ref(val: &Path) -> Self {
-        val.to_path_buf()
-    }
-}
-impl<T: Clone> FromRef<[T]> for Box<[T]> {
-    fn from_ref(val: &[T]) -> Self {
-        Box::from(val)
-    }
-}
-impl<T: Clone> FromRef<[T]> for Rc<[T]> {
-    fn from_ref(val: &[T]) -> Self {
-        Rc::from(val)
-    }
-}
-impl<T: Clone> FromRef<[T]> for Arc<[T]> {
-    fn from_ref(val: &[T]) -> Self {
-        Arc::from(val)
-    }
-}
-impl<T: Clone> FromRef<[T]> for Vec<T> {
-    fn from_ref(val: &[T]) -> Self {
-        val.to_vec()
-    }
-}
-impl<T: Clone> FromRef<T> for T {
-    fn from_ref(val: &T) -> Self {
-        val.clone()
-    }
-}
 
 /// Represents errors that can occur during an interning operation.
 #[derive(Debug, thiserror::Error)]
