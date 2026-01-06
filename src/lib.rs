@@ -549,7 +549,7 @@ mod tests {
         let handle = interner.intern_ref(item.as_bytes()).unwrap();
         assert_eq!(interner.len(), 1);
         assert_eq!(
-            interner.resolve(handle).map(|v| v.as_slice()),
+            interner.resolve(handle).map(alloc::vec::Vec::as_slice),
             Some(item.as_bytes()),
         );
     }

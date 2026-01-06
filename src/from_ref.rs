@@ -23,17 +23,17 @@ pub trait FromRef<Borrowed: ?Sized> {
 // str
 impl FromRef<str> for Box<str> {
     fn from_ref(val: &str) -> Self {
-        Box::from(val)
+        Self::from(val)
     }
 }
 impl FromRef<str> for Rc<str> {
     fn from_ref(val: &str) -> Self {
-        Rc::from(val)
+        Self::from(val)
     }
 }
 impl FromRef<str> for Arc<str> {
     fn from_ref(val: &str) -> Self {
-        Arc::from(val)
+        Self::from(val)
     }
 }
 impl FromRef<str> for String {
@@ -45,17 +45,17 @@ impl FromRef<str> for String {
 // CStr
 impl FromRef<CStr> for Box<CStr> {
     fn from_ref(val: &CStr) -> Self {
-        Box::from(val)
+        Self::from(val)
     }
 }
 impl FromRef<CStr> for Rc<CStr> {
     fn from_ref(val: &CStr) -> Self {
-        Rc::from(val)
+        Self::from(val)
     }
 }
 impl FromRef<CStr> for Arc<CStr> {
     fn from_ref(val: &CStr) -> Self {
-        Arc::from(val)
+        Self::from(val)
     }
 }
 impl FromRef<CStr> for CString {
@@ -74,17 +74,17 @@ impl<T: Clone> FromRef<T> for T {
 // [T]
 impl<T: Clone> FromRef<[T]> for Box<[T]> {
     fn from_ref(val: &[T]) -> Self {
-        Box::from(val)
+        Self::from(val)
     }
 }
 impl<T: Clone> FromRef<[T]> for Rc<[T]> {
     fn from_ref(val: &[T]) -> Self {
-        Rc::from(val)
+        Self::from(val)
     }
 }
 impl<T: Clone> FromRef<[T]> for Arc<[T]> {
     fn from_ref(val: &[T]) -> Self {
-        Arc::from(val)
+        Self::from(val)
     }
 }
 impl<T: Clone> FromRef<[T]> for Vec<T> {
@@ -109,17 +109,17 @@ mod os_impls {
     // OsStr
     impl FromRef<OsStr> for Box<OsStr> {
         fn from_ref(val: &OsStr) -> Self {
-            Box::from(val)
+            Self::from(val)
         }
     }
     impl FromRef<OsStr> for Rc<OsStr> {
         fn from_ref(val: &OsStr) -> Self {
-            Rc::from(val)
+            Self::from(val)
         }
     }
     impl FromRef<OsStr> for Arc<OsStr> {
         fn from_ref(val: &OsStr) -> Self {
-            Arc::from(val)
+            Self::from(val)
         }
     }
     impl FromRef<OsStr> for OsString {
@@ -131,17 +131,17 @@ mod os_impls {
     // Path
     impl FromRef<Path> for Box<Path> {
         fn from_ref(val: &Path) -> Self {
-            Box::from(val)
+            Self::from(val)
         }
     }
     impl FromRef<Path> for Rc<Path> {
         fn from_ref(val: &Path) -> Self {
-            Rc::from(val)
+            Self::from(val)
         }
     }
     impl FromRef<Path> for Arc<Path> {
         fn from_ref(val: &Path) -> Self {
-            Arc::from(val)
+            Self::from(val)
         }
     }
     impl FromRef<Path> for PathBuf {
