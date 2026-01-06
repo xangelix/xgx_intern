@@ -29,26 +29,32 @@ This approach offers two main benefits:
 - **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
 - **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
 - **Export**: Done interning values? Export the whole thing to a `Vec<T>` for further simplicity and memory efficiency.
+- **`no_std` Compatible**: Fully supports `no_std` environments via the `alloc` crate. Perfect for embedded systems, kernels, and WASM.
 
 > **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
 
 ## Installation
 
-Add `xgx_intern` to your `Cargo.toml`:
+To add `xgx_intern` to your project, run:
 
-```toml
-[dependencies]
-xgx_intern = "0.3" # make sure to use latest version
+```bash
+cargo add xgx_intern
 ```
 
-For improved performance, you can use a faster hasher like `ahash`:
+`xgx_intern` has just one feature, `std`, which enables support for native OS types.
 
-```toml
-[dependencies]
-ahash = "0.8" # make sure to use latest version
+### `no_std` Support
+
+To use this crate in a `no_std` environment, disable the default features (disables the `std` feature).
+
+```bash
+cargo add xgx_intern --no-default-features
 ```
 
-but make sure you understand the security and safety tradeoffs in your use case.
+**Note:** In `no_std` mode, the default `RandomState` hasher is unavailable. You will likely want to add a `no_std` compatible hasher like `ahash`:
+```bash
+cargo add ahash --no-default-features
+```
 
 ## Usage
 
@@ -149,7 +155,7 @@ let handle = interner.intern_owned("even faster hashing!".to_string()).unwrap();
 println!("Interned with ahash and got handle: {:?}", handle);
 ```
 
-You can see more rust hash benchmarks here: [Rust Hash Benchmarks](https://github.com/ogxd/gxhash?tab=readme-ov-file#benchmarks).
+You can see more rust hash benchmarks here: [Rust Hash Benchmarks](https://github.com/ogxd/gxhash?tab=readme-ov-file#benchmarks). Please make sure you understand the security and safety characteristics of your use case and your chosen algorithm before using it.
 
 ### Choosing a Handle Size
 
