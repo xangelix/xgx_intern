@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
+#![no_std]
 
 /// Provides wrappers for interning floating-point types.
 ///
@@ -16,8 +17,15 @@ pub mod from_ref;
 pub use float::{HashableF32, HashableF64};
 pub use from_ref::FromRef;
 
-use std::{
-    borrow::{Borrow, Cow},
+extern crate alloc;
+
+use alloc::{
+    borrow::{Cow, ToOwned},
+    string::String,
+    vec::Vec,
+};
+use core::{
+    borrow::Borrow,
     fmt,
     hash::{BuildHasher, Hash},
     marker::PhantomData,
@@ -442,14 +450,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{
+    use alloc::{
         borrow::Cow,
-        collections::hash_map::RandomState,
-        hash::{BuildHasherDefault, DefaultHasher, Hash as _, Hasher as _},
+        boxed::Box,
         rc::Rc,
+        string::{String, ToString as _},
         sync::Arc,
+        vec::Vec,
     };
+    use core::hash::{BuildHasherDefault, Hash as _, Hasher as _};
 
+    use ahash::RandomState;
     use rustc_hash::FxHasher;
 
     use super::{HashableF64, Interner, InternerError};
@@ -692,7 +703,7 @@ mod tests {
 
         let exported_data = interner.export();
 
-        let expected = vec!["first".to_string(), "second".to_string()];
+        let expected = alloc::vec!["first".to_string(), "second".to_string()];
         assert_eq!(exported_data, expected);
 
         // The index from the exported vec should correspond to the handle.
@@ -713,7 +724,7 @@ mod tests {
             collected.push(s.as_str());
         }
 
-        assert_eq!(collected, vec!["a", "b"]);
+        assert_eq!(collected, alloc::vec!["a", "b"]);
     }
 
     #[test]
@@ -741,8 +752,8 @@ mod tests {
         let b = HashableF64(f64::from_bits(f64::NAN.to_bits()));
         assert_eq!(a, b);
 
-        let mut ha = DefaultHasher::new();
-        let mut hb = DefaultHasher::new();
+        let mut ha = ahash::AHasher::default();
+        let mut hb = ahash::AHasher::default();
         a.hash(&mut ha);
         b.hash(&mut hb);
         assert_eq!(ha.finish(), hb.finish());

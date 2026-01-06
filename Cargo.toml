@@ -3,22 +3,26 @@ name = "xgx_intern"
 version = "0.4.0"
 edition = "2024"
 description = "A high-performance, Hash-based value interner with custom handle types."
-keywords = ["interner", "interning", "internment", "deduplication", "hashing"]
+keywords = ["interner", "internment", "deduplication", "hashing", "no_std"]
 categories = [
     "data-structures",
     "algorithms",
     "memory-management",
-    "development-tools",
     "rust-patterns",
+    "no-std",
 ]
 authors = ["Cody Wyatt Neiman (xangelix) <neiman@cody.to>"]
 license = "MIT"
 documentation = "https://docs.rs/xgx_intern"
 repository = "https://github.com/xangelix/xgx_intern"
 
+[features]
+default = ["std"]
+std = ["indexmap/std", "thiserror/std"]
+
 [dependencies]
-indexmap = "2"
-thiserror = "2"
+indexmap = { version = "2", default-features = false }
+thiserror = { version = "2", default-features = false }
 
 [dev-dependencies]
 rustc-hash = "2"
