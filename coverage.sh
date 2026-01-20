@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
-# --- Defaults (edit if you want) ---
+# --- Defaults ---
 OUT_FILE="coverage.json"
 DEFAULT_COV_ARGS=(--workspace --all-features)
 CACHE_SECONDS=3600
@@ -9,13 +10,13 @@ CACHE_SECONDS=3600
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/update_coverage_badge.sh [--out path/to/coverage.json] [-- <extra cargo llvm-cov args>]
+  coverage.sh [--out path/to/coverage.json] [-- <extra cargo llvm-cov args>]
 
 Examples:
-  scripts/update_coverage_badge.sh
-  scripts/update_coverage_badge.sh --out badges/coverage.json
-  scripts/update_coverage_badge.sh -- --package my_crate
-  scripts/update_coverage_badge.sh -- --ignore-filename-regex '(/tests/|/generated/)'
+  coverage.sh
+  coverage.sh --out badges/coverage.json
+  coverage.sh -- --package my_crate
+  coverage.sh -- --ignore-filename-regex '(/tests/|/generated/)'
 EOF
 }
 

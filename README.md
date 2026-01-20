@@ -155,7 +155,7 @@ let mut interner = Interner::<String, RandomState>::new(RandomState::new());
 
 let handle = interner.intern_owned("even faster hashing!".to_string()).unwrap();
 
-println!("Interned with ahash and got handle: {:?}", handle);
+println!("Interned with ahash and got handle: {handle:?}");
 ```
 
 You can see more rust hash benchmarks here: [Rust Hash Benchmarks](https://github.com/ogxd/gxhash?tab=readme-ov-file#benchmarks). Please make sure you understand the security and safety characteristics of your use case and your chosen algorithm before using it.
