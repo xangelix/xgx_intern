@@ -329,6 +329,7 @@ where
     ///     my_handle -= 1;
     /// }
     /// ```
+    /// See [`repair_handles`](Self::repair_handles) for a helper that automates this.
     pub fn remove<Q>(&mut self, item: &Q) -> Option<(H, T)>
     where
         T: Borrow<Q>,
@@ -360,9 +361,54 @@ where
     ///
     /// Any existing handle `h` where `h > handle` must be decremented by 1 to
     /// remain valid.
+    /// See [`repair_handles`](Self::repair_handles) for a helper that automates this.
     pub fn remove_handle(&mut self, handle: H) -> Option<T> {
         let idx = usize::try_from(handle).ok()?;
         self.items.shift_remove_index(idx)
+    }
+
+    /// A helper to update a collection of handles after a removal.
+    ///
+    /// When you call `remove`, handles greater than the removed index become invalid.
+    /// This helper iterates over your collection of handles and decrements those
+    /// that need to shift down, restoring their validity.
+    ///
+    /// # Generic Support
+    ///
+    /// This accepts any iterator that yields `&mut H`. This means it works with:
+    /// - `&mut [H]` (slices and vectors of handles)
+    /// - `.iter_mut()` on custom collections
+    /// - `.iter_mut().map(|item| &mut item.id)` for structs containing handles
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let (removed_h, _) = interner.remove("ItemB").unwrap();
+    ///
+    /// // Fix a simple vector of handles
+    /// interner.repair_handles(removed_h, &mut my_handle_vec);
+    ///
+    /// // Fix handles inside a custom struct
+    /// interner.repair_handles(removed_h, my_structs.iter_mut().map(|s| &mut s.handle));
+    /// ```
+    pub fn repair_handles<'a, I>(&self, removed: H, handles: I)
+    where
+        I: IntoIterator<Item = &'a mut H>,
+        H: 'a + PartialOrd,
+    {
+        for h in handles {
+            if *h > removed {
+                // We rely on the generic H <-> usize conversion to perform the decrement.
+                // We can safely unwrap here because:
+                // 1. If h > removed, h must be >= 1.
+                // 2. h - 1 is guaranteed to be a valid index that previously existed.
+                if let Ok(idx) = usize::try_from(*h)
+                    && let Ok(shifted) = H::try_from(idx - 1)
+                {
+                    *h = shifted;
+                }
+            }
+        }
     }
 
     /// Current capacity, in number of items.
@@ -1048,5 +1094,82 @@ mod tests {
         // "D" (was 3) should have been patched to 2.
         assert_eq!(handles[3], 2);
         assert_eq!(interner.resolve(handles[3]), Some(&"D".to_string()));
+    }
+
+    #[test]
+    fn test_remove_and_recover_handles_helper() {
+        let mut interner = create_string_interner();
+
+        let mut handles = alloc::vec![
+            interner.intern_ref("A").unwrap(), // 0
+            interner.intern_ref("B").unwrap(), // 1
+            interner.intern_ref("C").unwrap(), // 2
+            interner.intern_ref("D").unwrap(), // 3
+        ];
+
+        // 1. Remove "B" (index 1).
+        let (removed_handle, val) = interner.remove("B").unwrap();
+        assert_eq!(val, "B");
+
+        // 2. REPAIR AUTOMATICALLY
+        // We pass a mutable reference to the vector (which is IntoIterator)
+        interner.repair_handles(removed_handle, &mut handles);
+
+        // 3. Verify
+        assert_eq!(interner.resolve(handles[0]), Some(&"A".to_string()));
+        assert_eq!(interner.resolve(handles[1]), Some(&"C".to_string())); // Was 1, still 1, now points to C
+        assert_eq!(interner.resolve(handles[2]), Some(&"C".to_string())); // Was 2, fixed to 1, points to C
+        assert_eq!(interner.resolve(handles[3]), Some(&"D".to_string())); // Was 3, fixed to 2, points to D
+    }
+
+    #[test]
+    fn test_repair_handles_in_structs() {
+        struct User {
+            name_handle: u32,
+            _score: i32,
+        }
+
+        let mut interner = create_string_interner();
+        let h_a = interner.intern_ref("A").unwrap(); // 0
+        let h_b = interner.intern_ref("B").unwrap(); // 1
+        let h_c = interner.intern_ref("C").unwrap(); // 2
+
+        let mut users = alloc::vec![
+            User {
+                name_handle: h_a,
+                _score: 10,
+            },
+            User {
+                name_handle: h_b,
+                _score: 20,
+            },
+            User {
+                name_handle: h_c,
+                _score: 30,
+            },
+        ];
+
+        // Remove "A" (Handle 0). Everything > 0 should shift down.
+        let (removed, _) = interner.remove("A").unwrap();
+
+        // Complex usage: map to the field
+        interner.repair_handles(removed, users.iter_mut().map(|u| &mut u.name_handle));
+
+        // Validation
+        // A was removed.
+        // B (was 1) should become 0.
+        // C (was 2) should become 1.
+
+        assert_eq!(users[1].name_handle, 0);
+        assert_eq!(
+            interner.resolve(users[1].name_handle),
+            Some(&"B".to_string())
+        );
+
+        assert_eq!(users[2].name_handle, 1);
+        assert_eq!(
+            interner.resolve(users[2].name_handle),
+            Some(&"C".to_string())
+        );
     }
 }
