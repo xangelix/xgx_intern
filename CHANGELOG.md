@@ -1,5 +1,21 @@
 ## Changelog
 
+### 0.5.0
+
+**Features:**
+
+- **`no_std` Support:** The crate is now `no_std` compatible! It relies on the `alloc` crate for heap types (`String`, `Vec`, `Arc`, etc.).
+  - By default, the `std` feature is enabled, preserving full functionality.
+  - Users can disable default features to use the crate in embedded or kernel environments.
+- **Feature Gating:**
+  - `Path`, `PathBuf`, `OsStr`, and `OsString` implementations are now guarded behind the `std` feature.
+  - `RandomState` (default hasher) requires the `std` feature. `no_std` users must supply their own hasher (e.g., `ahash`) or explicit build hasher.
+- **More README examples**
+
+**Dependency Updates:**
+
+- `indexmap` and `thiserror` are now configured with `default-features = false` to support the `no_std` ecosystem.
+
 ### 0.4.0
 
 **Features:**
