@@ -131,6 +131,212 @@ println!("Found user: {:?}", resolved_user);
 // Output: Found user: User { id: 101, username: "alice" }
 ```
 
+### Example: Zero-Allocation Shared Strings (`Arc<str>`)
+
+This is a powerful pattern for high-performance applications like web servers or game engines.
+
+Suppose you have a read-heavy system where many threads need to access shared tags or keys (e.g., "content-type", "player_name"). You want to store them as `Arc<str>` for cheap sharing, but you only have `&str` references from incoming network packets.
+
+With standard `ToOwned`, looking up an `Arc<str>` would usually require allocating a temporary `String` first. **With `xgx_intern`, the lookup is allocation-free.**
+
+```rust
+use std::{collections::hash_map::RandomState, sync::Arc};
+
+use xgx_intern::Interner;
+
+// 1. Configure the interner to store `Arc<str>`.
+//    This creates a deduplicated, thread-safe string cache.
+let mut interner = Interner::<Arc<str>, RandomState>::new(RandomState::new());
+
+// 2. Imagine we are parsing a file or network request.
+//    We only have a borrowed slice, not an owned object.
+let raw_input: &str = "application/json";
+
+// 3. Intern the reference.
+//    - If the value exists: We get the handle immediately. ZERO allocations.
+//    - If the value is new: We allocate exactly ONE `Arc<str>`.
+//
+//    Without the `FromRef` trait, this would often require allocating a
+//    temporary `String` just to perform the lookup.
+let handle = interner.intern_ref(raw_input).unwrap();
+
+// 4. Resolve the handle.
+//    We get back a reference to the `Arc<str>` that lives in the interner.
+let tag: &Arc<str> = interner.resolve(handle).unwrap();
+
+assert_eq!(&**tag, "application/json");
+
+// 5. Cheaply clone the Arc if you need to pass it to another thread.
+let shared_tag = tag.clone();
+
+```
+
+## `FromRef` Trait Patterns
+
+The `FromRef` trait is a superpower of this crate. Unlike the standard `ToOwned`, which rigidly maps a reference to its standard owned form (e.g., `&str` -> `String`), `FromRef` allows you to define **lazy transformations**.
+
+This allows the interner to act as a **Deduplicating Cache** or a **Memoization Engine**, performing expensive work only when absolutely necessary.
+
+### 1. Basic: Interning Custom Types
+
+If you have a custom type that has a borrowed form (like `PathBuf` vs `Path` or your own wrapper types), you can enable `intern_ref` support by implementing the `FromRef` trait.
+
+```rust
+use std::{borrow::Borrow, collections::hash_map::RandomState, hash::Hash};
+
+use xgx_intern::{Interner, FromRef};
+
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+struct PlayerId(u32);
+
+// 1. Allow creating a PlayerId from a u32 ref (Required for insertion)
+impl FromRef<u32> for PlayerId {
+    fn from_ref(val: &u32) -> Self {
+        PlayerId(*val)
+    }
+}
+
+// 2. Allow viewing a PlayerId as a u32 (Required for lookup)
+impl Borrow<u32> for PlayerId {
+    fn borrow(&self) -> &u32 {
+        &self.0
+    }
+}
+
+fn main() {
+    // Now you can intern using simple integers!
+    let mut interner = Interner::<PlayerId, _>::new(RandomState::new());
+
+    // The interner sees &100500, checks if any existing PlayerId borrows to that value.
+    // If not, it uses from_ref to create a new PlayerId(100500).
+    let handle = interner.intern_ref(&100500).unwrap();
+}
+```
+
+### 2. Advanced: The Deduplicating Parser (Zero-Overhead Parsing)
+
+**Scenario:** You are processing a stream of raw network packets or log lines. Many messages are identical.
+
+**The Problem:** With a standard `HashMap`, you have to parse the bytes into a struct *before* you can check if you've seen it, wasting CPU on duplicates.
+
+**The Solution:** `xgx_intern` looks up the raw bytes first. It triggers the parsing logic (via `FromRef`) only on a cache miss.
+
+```rust
+use std::{borrow::Borrow, hash::{Hash, Hasher}};
+
+use serde::Deserialize;
+use xgx_intern::{Interner, FromRef};
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+struct MarketData {
+    // We keep the raw bytes to allow borrowing as &[u8] for lookups
+    #[serde(skip)]
+    raw: Vec<u8>, 
+    ticker: String,
+    price: u64,
+}
+
+// 1. Allow looking up MarketData using raw bytes
+impl Borrow<[u8]> for MarketData {
+    fn borrow(&self) -> &[u8] {
+        &self.raw
+    }
+}
+
+// 2. Hash based on the raw bytes (identity)
+impl Hash for MarketData {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.raw.hash(state);
+    }
+}
+
+// 3. Define how to PARSE bytes into MarketData.
+//    This runs ONLY if the packet is new.
+impl FromRef<[u8]> for MarketData {
+    fn from_ref(bytes: &[u8]) -> Self {
+        // Expensive parsing step:
+        let mut data: MarketData = serde_json::from_slice(bytes).unwrap();
+        data.raw = bytes.to_vec();
+        data
+    }
+}
+
+fn main() {
+    let mut cache = Interner::<MarketData, _>::new(std::collections::hash_map::RandomState::new());
+    
+    let packet = br#"{"ticker": "BTC", "price": 100000}"#;
+
+    // First time: Cache miss. Calls from_ref. Allocates and parses JSON.
+    let h1 = cache.intern_ref(packet.as_slice()).unwrap();
+
+    // Second time: Cache hit. Returns handle immediately. 
+    // ZERO allocation. ZERO JSON parsing overhead.
+    let h2 = cache.intern_ref(packet.as_slice()).unwrap();
+
+    assert_eq!(h1, h2);
+}
+
+```
+
+### 3. Advanced: The "Rich Symbol" (Computed Metadata)
+
+**Scenario:** You are building a compiler or analyzer. You want to intern identifiers, but you also want to know properties about them (e.g., "Is this a keyword?", "What is its hash?").
+
+**The Problem:** `&str` -> `ToOwned` returns `String`. It cannot return a `Symbol` struct.
+
+**The Solution:** Use `FromRef` to compute metadata *during* interning.
+
+```rust
+use std::{borrow::Borrow, hash::{Hash, Hasher}};
+
+use xgx_intern::{Interner, FromRef};
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct Symbol {
+    text: String,
+    // Metadata computed once at creation
+    is_keyword: bool,
+    length_score: usize, 
+}
+
+impl Hash for Symbol {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.text.hash(state);
+    }
+}
+
+impl Borrow<str> for Symbol {
+    fn borrow(&self) -> &str {
+        &self.text
+    }
+}
+
+// Transform &str -> Symbol lazily
+impl FromRef<str> for Symbol {
+    fn from_ref(s: &str) -> Self {
+        // Perform analysis here
+        Symbol {
+            text: s.to_string(),
+            is_keyword: matches!(s, "if" | "while" | "fn" | "return"),
+            length_score: s.len() * 2,
+        }
+    }
+}
+
+fn main() {
+    let mut pool = Interner::<Symbol, _>::new(std::collections::hash_map::RandomState::new());
+
+    // We look up using a simple string slice.
+    let handle = pool.intern_ref("while").unwrap();
+    
+    // We get back a fully analyzed struct.
+    let sym = pool.resolve(handle).unwrap();
+    
+    assert_eq!(sym.is_keyword, true);
+}
+
+```
+
 ## Customization
 
 ### Using a Faster Hasher
@@ -166,6 +372,7 @@ The default handle type `H` is `u32`, which allows for up to \~4.2 billion uniqu
 
 ```rust
 use std::collections::hash_map::RandomState;
+
 use xgx_intern::Interner;
 
 // This interner uses u16 handles, limiting it to 65,536 unique items.
