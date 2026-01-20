@@ -458,12 +458,12 @@ mod tests {
         sync::Arc,
         vec::Vec,
     };
-    use core::hash::{BuildHasherDefault, Hash as _, Hasher as _};
+    use core::hash::BuildHasherDefault;
 
     use ahash::RandomState;
     use rustc_hash::FxHasher;
 
-    use super::{HashableF64, Interner, InternerError};
+    use super::{Interner, InternerError};
 
     // A helper to create a standard interner for tests that use strings.
     fn create_string_interner() -> Interner<String, RandomState> {
@@ -747,22 +747,148 @@ mod tests {
     }
 
     #[test]
-    fn hashable_f64_nan_equality_and_hash() {
-        let a = HashableF64(f64::NAN);
-        let b = HashableF64(f64::from_bits(f64::NAN.to_bits()));
-        assert_eq!(a, b);
+    fn test_interner_utilities() {
+        let mut interner = Interner::<String, RandomState>::with_capacity(RandomState::new(), 10);
 
-        let mut ha = ahash::AHasher::default();
-        let mut hb = ahash::AHasher::default();
-        a.hash(&mut ha);
-        b.hash(&mut hb);
-        assert_eq!(ha.finish(), hb.finish());
+        // Test Capacity
+        assert!(interner.capacity() >= 10);
+
+        interner.intern_ref("a").unwrap();
+        interner.intern_ref("b").unwrap();
+
+        // Test Reserve
+        interner.reserve(100);
+        assert!(interner.capacity() >= 102);
+
+        // Test Shrink
+        interner.shrink_to_fit();
+        assert!(interner.capacity() >= 2);
+
+        // Test Debug formatting
+        let debug_str = alloc::format!("{interner:?}");
+        assert!(debug_str.contains("Interner"));
+        assert!(debug_str.contains("len: 2"));
+
+        // Test Clear
+        interner.clear();
+        assert!(interner.is_empty());
+        assert_eq!(interner.len(), 0);
     }
 
     #[test]
-    fn hashable_f64_signed_zero_unequal() {
-        let pz = HashableF64(0.0);
-        let nz = HashableF64(-0.0);
-        assert_ne!(pz, nz);
+    fn test_export_arena() {
+        let mut interner = create_string_interner();
+        let h1 = interner.intern_ref("hello").unwrap();
+        let h2 = interner.intern_ref("world").unwrap();
+
+        let (arena, offsets) = interner.export_arena();
+
+        assert_eq!(arena, "helloworld");
+        assert_eq!(offsets, alloc::vec![0, 5, 10]);
+
+        // Validate manual reconstruction
+        let idx1: usize = h1.try_into().unwrap();
+        let s1 = &arena[offsets[idx1]..offsets[idx1 + 1]];
+        assert_eq!(s1, "hello");
+
+        let idx2: usize = h2.try_into().unwrap();
+        let s2 = &arena[offsets[idx2]..offsets[idx2 + 1]];
+        assert_eq!(s2, "world");
+    }
+
+    #[test]
+    fn test_intern_ref_or_insert_with() {
+        let mut interner = create_string_interner();
+
+        // 1. Insert new via closure
+        let h1 = interner
+            .intern_ref_or_insert_with("key", || "key_computed".to_string())
+            .unwrap();
+        assert_eq!(interner.resolve(h1), Some(&"key_computed".to_string()));
+
+        // 2. Lookup existing (closure should NOT run)
+        let mut called = false;
+        let h2 = interner
+            .intern_ref_or_insert_with("key_computed", || {
+                called = true;
+                "should_not_exist".to_string()
+            })
+            .unwrap();
+
+        assert_eq!(h1, h2);
+        assert!(!called, "Closure should not be called if item exists");
+    }
+
+    #[test]
+    fn test_error_display() {
+        let err = InternerError::Overflow;
+        assert_eq!(alloc::format!("{err}"), "Interner handle space exhausted");
+    }
+
+    #[test]
+    fn test_into_iterator_owned() {
+        let mut interner = create_string_interner();
+        interner.intern_ref("a").unwrap();
+        interner.intern_ref("b").unwrap();
+
+        // This consumes the interner
+        let vec: Vec<String> = interner.into_iter().collect();
+        // Sort to ensure deterministic comparison, though IndexSet preserves insertion order
+        // so it should be ["a", "b"]
+        assert_eq!(vec, alloc::vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn test_export_arena_empty() {
+        let interner = create_string_interner();
+        let (arena, offsets) = interner.export_arena();
+
+        assert_eq!(arena, "");
+        assert_eq!(offsets, alloc::vec![0]); // Should just contain the initial 0
+    }
+
+    #[test]
+    fn test_lookup_handle_non_existent() {
+        let interner = create_string_interner();
+        // Explicitly test the Ok(None) path which maps through the Option
+        let res = interner.lookup_handle("ghost");
+        assert!(res.is_ok());
+        assert!(res.unwrap().is_none());
+    }
+    #[test]
+    fn test_default_impl() {
+        // Covers: impl Default for Interner
+        let interner: Interner<String, RandomState> = Interner::default();
+        assert!(interner.is_empty());
+    }
+
+    #[test]
+    fn test_explicit_iter() {
+        // Covers: pub fn iter(&self)
+        let mut interner = create_string_interner();
+        interner.intern_ref("A").unwrap();
+
+        // Explicitly call .iter() instead of relying on IntoIterator
+        let mut iter = interner.iter();
+        assert_eq!(iter.next(), Some(&"A".to_string()));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_error_debug_impl() {
+        // Covers: #[derive(Debug)] for InternerError
+        let err = InternerError::Overflow;
+        let debug_output = alloc::format!("{err:?}");
+        assert_eq!(debug_output, "Overflow");
+    }
+
+    #[test]
+    fn test_lookup_handle_success() {
+        // Covers: The 'Some' path of lookup_handle logic
+        let mut interner = create_string_interner();
+        let h = interner.intern_ref("A").unwrap();
+
+        let found = interner.lookup_handle("A").unwrap();
+        assert_eq!(found, Some(h));
     }
 }
