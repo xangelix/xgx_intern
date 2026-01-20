@@ -288,6 +288,83 @@ where
         self.items.contains(item)
     }
 
+    /// Removes a value from the interner and returns the Handle and the Value.
+    ///
+    /// # ⚠️ Performance Warning: O(n)
+    ///
+    /// Unlike standard `HashMap` removal which is O(1), this operation is **O(n)**
+    /// (linear time) because the interner is backed by a contiguous vector to
+    /// preserve ordering.
+    ///
+    /// When an item is removed, all subsequent items must be **shifted to the left**
+    /// to fill the gap.
+    ///
+    /// # ⚠️ Handle Invalidation
+    ///
+    /// Because indices shift, **handles for items inserted after this one will change**.
+    ///
+    /// ## Example Scenario
+    ///
+    /// Imagine an interner with items `[A, B, C]` corresponding to handles `0, 1, 2`.
+    ///
+    /// 1. You remove `B` (handle `1`).
+    /// 2. `C` shifts left to fill the gap.
+    /// 3. The storage is now `[A, C]`.
+    ///
+    /// **The Consequence:**
+    /// * Handle `0` (`A`) remains valid.
+    /// * Handle `2` (which used to be `C`) is now out of bounds!
+    /// * Handle `1` (which used to be `B`) now resolves to `C`.
+    ///
+    /// # Handle Recovery
+    ///
+    /// Since the shift is deterministic, you can "repair" your existing handles
+    /// if you are tracking them.
+    ///
+    /// * **Handles < removed:** Unaffected.
+    /// * **Handles > removed:** Must be decremented by 1.
+    ///
+    /// ```text
+    /// if my_handle > removed_handle {
+    ///     my_handle -= 1;
+    /// }
+    /// ```
+    pub fn remove<Q>(&mut self, item: &Q) -> Option<(H, T)>
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        // shift_remove_full returns (index, value)
+        // We use shift_remove to preserve the relative order of remaining items.
+        let (idx, val) = self.items.shift_remove_full(item)?;
+
+        // The index returned by IndexSet is guaranteed to fit in usize.
+        // We convert it back to H to return to the user.
+        // We suppress the error here because if it was in the map, it had a valid handle.
+        let handle = H::try_from(idx).ok()?;
+
+        Some((handle, val))
+    }
+
+    /// Removes the item associated with the given `handle`.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(T)`: The value that was removed, if the handle was valid.
+    /// - `None`: If the handle was invalid (e.g. out of bounds).
+    ///
+    /// # ⚠️ Performance & Invalidation
+    ///
+    /// Like [`remove`](Self::remove), this operation is **O(n)** and will shift
+    /// the indices of all subsequent items.
+    ///
+    /// Any existing handle `h` where `h > handle` must be decremented by 1 to
+    /// remain valid.
+    pub fn remove_handle(&mut self, handle: H) -> Option<T> {
+        let idx = usize::try_from(handle).ok()?;
+        self.items.shift_remove_index(idx)
+    }
+
     /// Current capacity, in number of items.
     #[inline]
     pub fn capacity(&self) -> usize {
@@ -890,5 +967,86 @@ mod tests {
 
         let found = interner.lookup_handle("A").unwrap();
         assert_eq!(found, Some(h));
+    }
+
+    #[test]
+    fn test_remove_handle_shifts_indices() {
+        let mut interner = create_string_interner();
+
+        // 1. Insert [A, B, C]
+        let h_a = interner.intern_ref("A").unwrap(); // 0
+        let h_b = interner.intern_ref("B").unwrap(); // 1
+        let h_c = interner.intern_ref("C").unwrap(); // 2
+
+        assert_eq!(interner.len(), 3);
+
+        // 2. Remove "B" (index 1) using its handle
+        let removed = interner.remove_handle(h_b);
+
+        assert_eq!(removed, Some("B".to_string()));
+        assert_eq!(interner.len(), 2);
+
+        // 3. Verify the state of the remaining handles
+
+        // Handle 0 ("A") is unaffected because it was *before* the removal.
+        assert_eq!(interner.resolve(h_a), Some(&"A".to_string()));
+
+        // Handle 2 ("C") is now BROKEN. It points to index 2, but the vector
+        // is only length 2 (indices 0 and 1).
+        assert_eq!(interner.resolve(h_c), None);
+
+        // "C" has actually shifted down to Handle 1.
+        // (This simulates what happens if we reused the old 'B' handle)
+        assert_eq!(interner.resolve(h_b), Some(&"C".to_string()));
+    }
+
+    #[test]
+    fn test_remove_and_recover_handles() {
+        let mut interner = create_string_interner();
+
+        // 1. Setup handles: [0, 1, 2, 3]
+        // Items: ["A", "B", "C", "D"]
+        let mut handles = alloc::vec![
+            interner.intern_ref("A").unwrap(), // 0
+            interner.intern_ref("B").unwrap(), // 1
+            interner.intern_ref("C").unwrap(), // 2
+            interner.intern_ref("D").unwrap(), // 3
+        ];
+
+        // 2. Remove "B" (index 1).
+        // usage: remove returns the handle of the item that was removed.
+        let (removed_handle, val) = interner.remove("B").unwrap();
+
+        assert_eq!(val, "B");
+        assert_eq!(removed_handle, 1);
+
+        // 3. The Recovery Loop
+        // We iterate over our local handles and patch them.
+        for h in &mut handles {
+            // Use strict greater-than (>).
+            // Handles < 1 stay the same.
+            // Handle == 1 is the one we just removed.
+            if *h > removed_handle {
+                *h -= 1;
+            }
+        }
+
+        // 4. Verification
+
+        // "A" (was 0) should still be 0
+        assert_eq!(interner.resolve(handles[0]), Some(&"A".to_string()));
+
+        // "B" (was 1) was removed. In our vector, `handles[1]` is still `1`.
+        // However, in the interner, index 1 has been filled by "C".
+        // This is expected behavior for the "removed" handle.
+        assert_eq!(interner.resolve(handles[1]), Some(&"C".to_string()));
+
+        // "C" (was 2) should have been patched to 1.
+        assert_eq!(handles[2], 1);
+        assert_eq!(interner.resolve(handles[2]), Some(&"C".to_string()));
+
+        // "D" (was 3) should have been patched to 2.
+        assert_eq!(handles[3], 2);
+        assert_eq!(interner.resolve(handles[3]), Some(&"D".to_string()));
     }
 }
