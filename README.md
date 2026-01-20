@@ -1,9 +1,9 @@
 ## xgx_intern
 
 [![Crates.io](https://img.shields.io/crates/v/xgx_intern)](https://crates.io/crates/xgx_intern)
-[![no_std](https://img.shields.io/badge/no_std-8A2BE2)](https://docs.rust-embedded.org/book/intro/no-std.html)
 [![Docs.rs](https://docs.rs/xgx_intern/badge.svg)](https://docs.rs/xgx_intern)
 [![License](https://img.shields.io/crates/l/xgx_intern)](https://spdx.org/licenses/MIT)
+[![no_std](https://img.shields.io/badge/no_std-8A2BE2)](https://docs.rust-embedded.org/book/intro/no-std.html)
 ![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxangelix%2Fxgx_intern%2Fmain%2Fcoverage.json)
 
 
