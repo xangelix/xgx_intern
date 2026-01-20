@@ -1,4 +1,4 @@
-## xgx_intern
+# xgx_intern
 
 [![Crates.io](https://img.shields.io/crates/v/xgx_intern)](https://crates.io/crates/xgx_intern)
 [![Docs.rs](https://docs.rs/xgx_intern/badge.svg)](https://docs.rs/xgx_intern)
@@ -11,7 +11,7 @@ A high-performance, Hash-based value interner with custom handle types.
 
 Supports any type that implements the Hash trait for internment, and allows custom handle sizes! Perfect for native64<-->wasm32 compatibility.
 
-## Overview
+## 📖 Overview
 
 Value interning is a technique for deduplicating equal values to save memory and improve performance. An interner stores each unique value only once and provides a lightweight, copyable "handle" (or "symbol") to reference it.
 
@@ -22,21 +22,21 @@ This approach offers two main benefits:
 
 `xgx_intern` provides a flexible and ergonomic implementation of this pattern, suitable for a wide range of applications.
 
-## Features
+## ✨ Features
 
-- **Fully Generic**: Works with any type that implements `Eq + Hash`.
-- **Customizable Hasher**: Pluggable hashing algorithm via the `BuildHasher` trait. Use `ahash` or `fxhash` for a significant speed boost in performance-critical code.
-- **Customizable Handle**: Choose the integer size for your handles (`u16`, `u32`, `u64`, etc.) to perfectly balance memory usage with the expected number of unique items.
-- **Ergonomic API**: Offers `intern_owned`, `intern_ref`, and `intern_cow` to handle different ownership scenarios efficiently and avoid unnecessary clones.
-- **Smart Pointer & System Types**: Efficiently interns `Arc<str>`, `Rc<str>`, `Box<str>`, `PathBuf`, `OsString`, and `CString` directly from borrowed references (`&str`, `&Path`, etc.), enabling zero-allocation lookups for shared strings and system types.
-- **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
-- **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
-- **Export**: Done interning values? Export the whole thing to a `Vec<T>` for further simplicity and memory efficiency.
-- **`no_std` Compatible**: Fully supports `no_std` environments via the `alloc` crate. Perfect for embedded systems, kernels, and WASM.
+- 🧬 **Fully Generic**: Works with any type that implements `Eq + Hash`.
+- ⚡ **Customizable Hasher**: Pluggable hashing algorithm via the `BuildHasher` trait. Use `ahash` or `fxhash` for a significant speed boost in performance-critical code.
+- 🏷️ **Customizable Handle**: Choose the integer size for your handles (`u16`, `u32`, `u64`, etc.) to perfectly balance memory usage with the expected number of unique items.
+- 🤲 **Ergonomic API**: Offers `intern_owned`, `intern_ref`, and `intern_cow` to handle different ownership scenarios efficiently and avoid unnecessary clones.
+- 🧠 **Smart Pointer & System Types**: Efficiently interns `Arc<str>`, `Rc<str>`, `Box<str>`, `PathBuf`, `OsString`, and `CString` directly from borrowed references (`&str`, `&Path`, etc.), enabling zero-allocation lookups for shared strings and system types.
+- 🔢 **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
+- 📋 **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
+- 📤 **Export**: Done interning values? Export the whole thing to a `Vec<T>` for further simplicity and memory efficiency.
+- 🔌 **`no_std` Compatible**: Fully supports `no_std` environments via the `alloc` crate. Perfect for embedded systems, kernels, and WASM.
 
 > **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
 
-## Installation
+## 📦 Installation
 
 To add `xgx_intern` to your project, run:
 
@@ -59,7 +59,7 @@ cargo add xgx_intern --no-default-features
 cargo add ahash --no-default-features
 ```
 
-## Usage
+## 🚀 Usage
 
 ### Example: Interning Strings
 
@@ -171,7 +171,7 @@ let shared_tag = tag.clone();
 
 ```
 
-## `FromRef` Trait Patterns
+## 💡 `FromRef` Trait Patterns
 
 The `FromRef` trait is a superpower of this crate. Unlike the standard `ToOwned`, which rigidly maps a reference to its standard owned form (e.g., `&str` -> `String`), `FromRef` allows you to define **lazy transformations**.
 
@@ -337,7 +337,7 @@ fn main() {
 
 ```
 
-## Customization
+## ⚙️ Customization
 
 ### Using a Faster Hasher
 
@@ -389,6 +389,6 @@ Conversely, if you need more than `u32::MAX` items, you can use `u64`.
 
 > **⚠️ WebAssembly Note:** When compiling for a `wasm32` target, it's **critical** that you use a handle size of `u32` or smaller (`u16`, `u8`). The `wasm32` architecture has a 32-bit pointer size (`usize`), so it cannot create handles from larger types like `u64`, which would cause an error.
 
-## License
+## ⚖️ License
 
 This project is licensed under the ([LICENSE-MIT](https://spdx.org/licenses/MIT)).
