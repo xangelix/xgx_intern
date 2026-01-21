@@ -1,5 +1,15 @@
 ## Changelog
 
+### 0.5.1
+
+**Features:**
+
+- **Item Removal:** Added `remove` and `remove_handle` methods to allow deleting items from the interner.
+  - **Note:** These operations are **O(n)** (linear time) as they require shifting the underlying vector to preserve order.
+  - **Warning:** Removal **invalidates** existing handles that are greater than the removed index.
+- **Handle Recovery:** Added the `repair_handles` helper method.
+  - This utility iterates over a user-provided collection of handles (e.g., `&mut Vec<H>`) and automatically updates them to account for the index shift caused by a removal operation.
+
 ### 0.5.0
 
 **Features:**
