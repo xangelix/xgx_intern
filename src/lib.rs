@@ -535,19 +535,28 @@ where
     ///
     /// This returns a tuple containing:
     /// 1. `String`: A massive string containing all interned values concatenated together.
-    /// 2. `Vec<usize>`: A list of offsets.
+    /// 2. `Vec<H>`: A list of offsets matching your custom handle/pointer type.
     ///
     /// # How to use
     ///
     /// The string associated with handle `h` is located at:
-    /// `&arena[offsets[h] .. offsets[h+1]]`
+    /// ```rs
+    /// let start = usize::try_from(offsets[h]).unwrap();
+    /// let end = usize::try_from(offsets[h + 1]).unwrap();
+    /// let s = &arena[start..end];
+    /// ```
     ///
     /// # Efficiency
     ///
     /// This is much more memory efficient than `export()` for large numbers of small strings,
     /// as it removes the overhead of `String` structs (24 bytes) and heap allocators (16+ bytes)
     /// per item.
-    pub fn export_arena(self) -> (String, Vec<usize>) {
+    ///
+    /// # Errors
+    ///
+    /// Returns `InternerError::Overflow` if the total aggregated byte length of the arena
+    /// exceeds the maximum value representable by your handle type `H`.
+    pub fn export_arena(self) -> Result<(String, Vec<H>), InternerError> {
         // 1. Calculate total bytes needed to perform exactly ONE allocation.
         // We iterate once to count. This is cheap (RAM access).
         let total_bytes: usize = self.items.iter().map(|s| s.as_ref().len()).sum();
@@ -558,16 +567,16 @@ where
         let mut offsets = Vec::with_capacity(count + 1);
 
         // 3. The first offset is always 0.
-        offsets.push(0);
+        offsets.push(H::try_from(0usize).map_err(|_| InternerError::Overflow)?);
 
         // 4. Fill the arena.
         // IndexSet iteration preserves insertion order, so handle IDs remain valid.
         for item in self.items {
             arena.push_str(item.as_ref());
-            offsets.push(arena.len());
+            offsets.push(H::try_from(arena.len()).map_err(|_| InternerError::Overflow)?);
         }
 
-        (arena, offsets)
+        Ok((arena, offsets))
     }
 }
 
@@ -904,18 +913,18 @@ mod tests {
         let h1 = interner.intern_ref("hello").unwrap();
         let h2 = interner.intern_ref("world").unwrap();
 
-        let (arena, offsets) = interner.export_arena();
+        let (arena, offsets) = interner.export_arena().unwrap();
 
         assert_eq!(arena, "helloworld");
         assert_eq!(offsets, alloc::vec![0, 5, 10]);
 
         // Validate manual reconstruction
         let idx1: usize = h1.try_into().unwrap();
-        let s1 = &arena[offsets[idx1]..offsets[idx1 + 1]];
+        let s1 = &arena[offsets[idx1] as usize..offsets[idx1 + 1] as usize];
         assert_eq!(s1, "hello");
 
         let idx2: usize = h2.try_into().unwrap();
-        let s2 = &arena[offsets[idx2]..offsets[idx2 + 1]];
+        let s2 = &arena[offsets[idx2] as usize..offsets[idx2 + 1] as usize];
         assert_eq!(s2, "world");
     }
 
@@ -964,7 +973,7 @@ mod tests {
     #[test]
     fn test_export_arena_empty() {
         let interner = create_string_interner();
-        let (arena, offsets) = interner.export_arena();
+        let (arena, offsets) = interner.export_arena().unwrap();
 
         assert_eq!(arena, "");
         assert_eq!(offsets, alloc::vec![0]); // Should just contain the initial 0
