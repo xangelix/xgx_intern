@@ -38,7 +38,7 @@ use core::{
 use indexmap::IndexSet;
 
 /// Represents errors that can occur during an interning operation.
-#[derive(Debug, thiserror::Error)]
+#[derive(Clone, Copy, Debug, thiserror::Error)]
 pub enum InternerError {
     /// Occurs when the number of unique items exceeds the maximum value
     /// representable by the handle type `H`.
@@ -101,6 +101,7 @@ pub enum InternerError {
 /// // The interner only stores two unique strings.
 /// assert_eq!(interner.len(), 2);
 /// ```
+#[derive(Clone)]
 pub struct Interner<T, S, H = u32>
 where
     T: Eq + Hash,
