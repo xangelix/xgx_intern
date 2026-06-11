@@ -6,7 +6,6 @@
 [![no_std](https://img.shields.io/badge/no_std-8A2BE2)](https://docs.rust-embedded.org/book/intro/no-std.html)
 ![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxangelix%2Fxgx_intern%2Fmain%2Fcoverage.json)
 
-
 A high-performance, Hash-based value interner with custom handle types.
 
 Supports any type that implements the Hash trait for internment, and allows custom handle sizes! Perfect for native64<-->wasm32 compatibility.
@@ -56,6 +55,7 @@ cargo add xgx_intern --no-default-features
 ```
 
 **Note:** In `no_std` mode, the default `RandomState` hasher is unavailable. You will likely want to add a `no_std` compatible hasher like `ahash`:
+
 ```bash
 cargo add ahash --no-default-features
 ```
@@ -279,7 +279,7 @@ fn main() {
 
 **Scenario:** You are processing a stream of raw network packets or log lines. Many messages are identical.
 
-**The Problem:** With a standard `HashMap`, you have to parse the bytes into a struct *before* you can check if you've seen it, wasting CPU on duplicates.
+**The Problem:** With a standard `HashMap`, you have to parse the bytes into a struct _before_ you can check if you've seen it, wasting CPU on duplicates.
 
 **The Solution:** `xgx_intern` looks up the raw bytes first. It triggers the parsing logic (via `FromRef`) only on a cache miss.
 
@@ -293,7 +293,7 @@ use xgx_intern::{Interner, FromRef};
 struct MarketData {
     // We keep the raw bytes to allow borrowing as &[u8] for lookups
     #[serde(skip)]
-    raw: Vec<u8>, 
+    raw: Vec<u8>,
     ticker: String,
     price: u64,
 }
@@ -325,13 +325,13 @@ impl FromRef<[u8]> for MarketData {
 
 fn main() {
     let mut cache = Interner::<MarketData, _>::new(std::collections::hash_map::RandomState::new());
-    
+
     let packet = br#"{"ticker": "BTC", "price": 100000}"#;
 
     // First time: Cache miss. Calls from_ref. Allocates and parses JSON.
     let h1 = cache.intern_ref(packet.as_slice()).unwrap();
 
-    // Second time: Cache hit. Returns handle immediately. 
+    // Second time: Cache hit. Returns handle immediately.
     // ZERO allocation. ZERO JSON parsing overhead.
     let h2 = cache.intern_ref(packet.as_slice()).unwrap();
 
@@ -346,7 +346,7 @@ fn main() {
 
 **The Problem:** `&str` -> `ToOwned` returns `String`. It cannot return a `Symbol` struct.
 
-**The Solution:** Use `FromRef` to compute metadata *during* interning.
+**The Solution:** Use `FromRef` to compute metadata _during_ interning.
 
 ```rust
 use std::{borrow::Borrow, hash::{Hash, Hasher}};
@@ -358,7 +358,7 @@ struct Symbol {
     text: String,
     // Metadata computed once at creation
     is_keyword: bool,
-    length_score: usize, 
+    length_score: usize,
 }
 
 impl Hash for Symbol {
@@ -390,10 +390,10 @@ fn main() {
 
     // We look up using a simple string slice.
     let handle = pool.intern_ref("while").unwrap();
-    
+
     // We get back a fully analyzed struct.
     let sym = pool.resolve(handle).unwrap();
-    
+
     assert_eq!(sym.is_keyword, true);
 }
 
