@@ -14,6 +14,10 @@ pub mod float;
 /// Provides the `FromRef` trait for constructing owned types from references.
 pub mod from_ref;
 
+/// Provides the memory-efficient `ArenaString` type for low-overhead interning.
+pub mod arena_string;
+
+pub use arena_string::ArenaString;
 pub use float::{HashableF32, HashableF64};
 pub use from_ref::FromRef;
 

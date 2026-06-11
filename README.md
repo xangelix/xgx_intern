@@ -29,6 +29,7 @@ This approach offers two main benefits:
 - 🏷️ **Customizable Handle**: Choose the integer size for your handles (`u16`, `u32`, `u64`, etc.) to perfectly balance memory usage with the expected number of unique items.
 - 🤲 **Ergonomic API**: Offers `intern_owned`, `intern_ref`, and `intern_cow` to handle different ownership scenarios efficiently and avoid unnecessary clones.
 - 🧠 **Smart Pointer & System Types**: Efficiently interns `Arc<str>`, `Rc<str>`, `Box<str>`, `PathBuf`, `OsString`, and `CString` directly from borrowed references (`&str`, `&Path`, etc.), enabling zero-allocation lookups for shared strings and system types.
+- 🏟️ **Arena-backed Strings (`ArenaString`)**: Slice directly into shared memory arenas (`Arc<str>`) with zero allocations, falling back to owned dynamically-allocated strings (`CompactString`/`Box<str>`) when needed.
 - 🔢 **Float Support**: Includes `HashableF32` and `HashableF64` wrappers to enable reliable interning of floating-point numbers, which don't normally implement `Eq` or `Hash`.
 - 📋 **Order Preserving**: Built on `indexmap`, the interner preserves the insertion order of unique values.
 - 📤 **Export**: Done interning values? Export the whole thing to a `Vec<T>` for further simplicity and memory efficiency.
@@ -170,6 +171,67 @@ assert_eq!(&**tag, "application/json");
 let shared_tag = tag.clone();
 
 ```
+
+### Example: Zero-Allocation Arena Slices (`ArenaString`)
+
+`ArenaString` is a memory-efficient string representation designed for zero-allocation deserialization and low-overhead value interning.
+
+If you have a large text file or packet already in memory as an `Arc<str>`, you can create `ArenaString::Shared` handles referencing slices within that buffer. Looking up and storing these is completely allocation-free, since they point directly to the existing memory. If you intern a standard `&str` reference, it falls back to an `Owned` string.
+
+```rust
+use std::{collections::hash_map::RandomState, sync::Arc};
+
+use xgx_intern::{Interner, ArenaString};
+
+// 1. Imagine we have a large buffer/snapshot loaded as a shared Arc<str>.
+let payload: Arc<str> = Arc::from("user_alice,user_bob,user_charlie");
+
+// 2. Configure the interner to store `ArenaString`.
+let mut interner = Interner::<ArenaString, RandomState>::new(RandomState::new());
+
+// 3. Slice into the shared arena without any allocation:
+let alice = ArenaString::Shared {
+    arena: payload.clone(),
+    offset: 0,
+    len: 10,
+};
+let bob = ArenaString::Shared {
+    arena: payload.clone(),
+    offset: 11,
+    len: 8,
+};
+
+// Interning the pre-sliced Shared strings allocates ZERO memory.
+let h1 = interner.intern_owned(alice).unwrap();
+let h2 = interner.intern_owned(bob).unwrap();
+
+// 4. We can also intern standard &str references directly.
+//    If the value doesn't exist, this falls back to a dynamically-allocated
+//    owned string (using `CompactString` under the hood if the feature is enabled).
+let h3 = interner.intern_ref("user_alice").unwrap();
+
+// Both options are fully compatible and compare/hash identically.
+assert_eq!(h1, h3);
+assert_ne!(h1, h2);
+assert_eq!(interner.resolve(h1).unwrap().as_str(), "user_alice");
+```
+
+### ⚖️ Comparing String Storage Options
+
+When choosing a type `T` to intern with `Interner<T, S, H>`, there are several options. Here is a comparison to help you choose the best one for your use case:
+
+| Type                   | Allocation on Lookup    | Allocation on Insertion                                         | Shared Ownership                   | Best For                                                                                                                                                                          |
+| ---------------------- | ----------------------- | --------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `String`               | Zero (via `intern_ref`) | **Yes** (1 per unique string)                                   | No (must clone)                    | General purpose, simple workloads.                                                                                                                                                |
+| `Box<str>`             | Zero (via `intern_ref`) | **Yes** (1 per unique string)                                   | No (must clone)                    | General purpose, saves 8 bytes of metadata over `String`.                                                                                                                         |
+| `Arc<str>` / `Rc<str>` | Zero (via `intern_ref`) | **Yes** (1 per unique string)                                   | **Yes** (cheap clone)              | Read-heavy systems where interned strings are shared widely across threads or components.                                                                                         |
+| `ArenaString`          | Zero (via `intern_ref`) | **No** (if pre-sliced `Shared`) / **Yes** (if `Owned` fallback) | **Yes** (cheap clone of the arena) | Large text parsing/deserialization (JSON, logs, ASTs) where you can slice a loaded file, and/or small-string optimization (saves heap allocations when `compact_str` is enabled). |
+
+#### When to choose `ArenaString` over other options:
+
+1. **You are parsing/deserializing a single large document**: If you load a snapshot, file, or packet as an `Arc<str>` and slice it into components, `ArenaString::Shared` allows you to store those slices in the interner with **zero heap allocations and zero memory copies**. In contrast, `String`, `Box<str>`, and `Arc<str>` would all perform a new heap allocation and string copy for every single unique slice.
+2. **You want Small String Optimization (SSO)**: When the `compact_str` feature is enabled (default), any dynamically allocated fallback string (`ArenaString::Owned`) avoids heap allocations entirely if the string is 24 bytes or shorter.
+3. **You have mixed workloads**: You need to intern some strings that are slices of a loaded file, and other strings that are generated dynamically at runtime.
 
 ## 💡 `FromRef` Trait Patterns
 

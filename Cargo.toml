@@ -17,12 +17,13 @@ documentation = "https://docs.rs/xgx_intern"
 repository = "https://github.com/xangelix/xgx_intern"
 
 [features]
-default = ["std"]
+default = ["std", "compact_str"]
 std = ["indexmap/std", "thiserror/std"]
 
 [dependencies]
 indexmap = { version = "2", default-features = false }
 thiserror = { version = "2", default-features = false }
+compact_str = { version = "0.8", default-features = false, optional = true }
 
 [dev-dependencies]
 rustc-hash = "2"
