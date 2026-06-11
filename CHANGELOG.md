@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.6.3
+
+**Bugs:**
+
+- **Invalid import for no-default-features**: Fix import on `Box` from `alloc`
+
 ### 0.6.2
 
 **Features:**
