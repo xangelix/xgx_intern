@@ -121,7 +121,7 @@ impl FromRef<str> for ArenaString {
         }
         #[cfg(not(feature = "compact_str"))]
         {
-            Self::Owned(Box::from(val))
+            Self::Owned(alloc::boxed::Box::from(val))
         }
     }
 }
