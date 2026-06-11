@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.6.2
+
+**Features:**
+
+- **Clone and Copy**: Clone implemented for Interner and InternerError, Copy implemented for InternerError
+
 ### 0.6.1
 
 **Dependency Updates:**
