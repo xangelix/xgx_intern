@@ -1,5 +1,25 @@
 ## Changelog
 
+### 0.6.0
+
+**Features:**
+
+- **Arena-backed Strings (`ArenaString`):** Added the memory-efficient `ArenaString` type for low-overhead value interning and zero-allocation snapshot deserialization.
+  - Can represent a slice inside a shared immutable arena (`Arc<str>`) or fall back to an owned string.
+  - Integrates with the `compact_str` feature to use `CompactString` for owned fallbacks, avoiding heap allocations for short strings (up to 24 bytes).
+- **Custom Handles in `export_arena`:** `export_arena` now returns offsets matching the custom handle type `H` (e.g., `u32` or `u16`) instead of hardcoded `usize` offsets, allowing for better type consistency and memory usage.
+
+**Breaking Changes:**
+
+- **`export_arena` Signature Change:** The `export_arena` method now returns `Result<(String, Vec<H>), InternerError>` instead of `(String, Vec<usize>)`.
+  - It can return `InternerError::Overflow` if the total aggregated byte length of the arena exceeds the maximum value representable by your handle type `H`.
+  - Returned offsets are now represented as `H` (matching the interner's handle type) instead of `usize`.
+
+**Metadata & Docs:**
+
+- Added GitHub funding configuration.
+- Enhanced `README.md` with detailed comparison documentation and examples for `ArenaString`.
+
 ### 0.5.1
 
 **Features:**
