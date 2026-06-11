@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.6.1
+
+**Dependency Updates:**
+
+- `compact_str` upgraded from v0.8 to v0.9
+
 ### 0.6.0
 
 **Features:**
